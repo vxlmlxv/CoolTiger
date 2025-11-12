@@ -1,0 +1,24 @@
+rules_version='2'
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isGuardian() {
+      return request.auth != null && request.auth.token.role == 'guardian';
+    }
+    match /guardians/{guadianId} {
+      allow read, write: if request.auth != null && request.auth.uid == guadianId;
+    }
+    match /seniors/{seniorId} {
+      allow read, write: if isGuardian();
+    }
+    match /conversation_logs/{logId} {
+      allow create: if true;   // app writes
+      allow read: if isGuardian();
+    }
+    match /analysis_reports/{reportId} {
+      allow write: if true;
+      allow read: if isGuardian();
+    }
+    }
+  }
+

@@ -1,0 +1,8 @@
+firebase-functions
+google-cloud-firestore
+google-cloud-storage
+google-cloud-secret-manager
+google-cloud-texttospeech
+requests
+pydantic
+python-dotenv
