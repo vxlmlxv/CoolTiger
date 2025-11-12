@@ -158,7 +158,7 @@ Set up a FastAPI project under `backend/` with:
 - Entry file `main.py` exposing `app`.
 - Routers: `conversation.py`, `scheduler.py`, `analysis.py`, `health.py`.
 - Services: `firestore_client.py`, `clova_speech.py`, `clova_studio.py`, `google_tts.py`, `fcm_client.py`.
-- Dependency injection for Firestore (via google-cloud-firestore) and storage (google-cloud-storage).
+- Dependency injection for Firestore (via google-cloud-firestore).
 Include Pydantic schemas mirroring the Firestore models and ensure the Docker/App Hosting runtime is python311 with `uvicorn`.
 ```
 
@@ -182,6 +182,8 @@ Inside backend/routers/conversation.py implement:
 Expose environment variable names for each external API key/secrets and fail gracefully when unset.
 Return updated files plus unit-test-ready helpers.
 ```
+
+_skipped_
 
 ### Step 2.3 – Proactive Check-in Trigger
 
@@ -244,7 +246,7 @@ Return all new files and explain testing steps (unit + integration).
 
 ```text
 Using the same services, create a web-only implementation:
-1. Replace long-press gestures with "Start Recording" / "Stop" buttons.
+1. Replace press gestures with "Start Recording" / "Stop" buttons.
 2. Use the `flutter_webrtc` or `mic_stream`-compatible package for browser audio capture, converting to a format the backend accepts.
 3. Detect unsupported browsers and show guidance.
 4. Reuse the cognitive training renderer so stakeholders see the full loop.
