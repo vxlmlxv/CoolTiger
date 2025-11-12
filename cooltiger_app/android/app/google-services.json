@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "304653364245",
+    "project_id": "cooltiger",
+    "storage_bucket": "cooltiger.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:304653364245:android:26281e8213240ee197721c",
+        "android_client_info": {
+          "package_name": "com.cooltiger.senior"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBSm2DTyPlcT5TqdJpttMrdhFzc3zm1474"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
