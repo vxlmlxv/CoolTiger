@@ -18,3 +18,12 @@ Unified Flutter targets for the Senior mobile app, Guardian web dashboard, and S
    - Replace the placeholders within `seniorWebOptions` in the same file.
 
 The entry points (`lib/main_senior.dart`, `lib/main_guardian.dart`, `lib/main_senior_web.dart`) automatically call `bootstrapFirebase(...)` so no additional work is required after the values are populated.
+
+## Browser Showcase Notes
+
+- The showcase flavor captures audio via the Web MediaRecorder APIs (through `flutter_webrtc`) and uploads it as `audio/webm`. Ensure the backend exposes the following CORS headers for `POST /api/v1/conversation` and `OPTIONS` preflight requests:
+  - `Access-Control-Allow-Origin: https://<your-host>.web.app`
+  - `Access-Control-Allow-Methods: GET,POST,OPTIONS`
+  - `Access-Control-Allow-Headers: Content-Type, Authorization`
+  - `Access-Control-Allow-Credentials: true`
+- If your STT pipeline only accepts WAV/AAC, transcode `audio/webm` server-side or adjust the MediaRecorder mime type to a supported format.

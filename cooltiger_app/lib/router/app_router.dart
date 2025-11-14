@@ -2,6 +2,7 @@ import 'package:go_router/go_router.dart';
 
 import '../app.dart';
 import '../features/guardian/views/guardian_dashboard_screen.dart';
+import '../features/guardian/views/guardian_settings_screen.dart';
 import '../features/senior/views/senior_home_screen.dart';
 import '../features/showcase/views/showcase_screen.dart';
 
@@ -27,6 +28,13 @@ GoRouter buildAppRouter(TargetFlavor flavor) {
             path: GuardianDashboardScreen.routePath,
             name: GuardianDashboardScreen.routeName,
             builder: (context, state) => const GuardianDashboardScreen(),
+            routes: [
+              GoRoute(
+                path: 'settings',
+                name: 'guardian-settings',
+                builder: (context, state) => const GuardianSettingsScreen(),
+              ),
+            ],
           ),
         ],
       );

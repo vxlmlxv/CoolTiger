@@ -57,8 +57,8 @@ class _CoolTigerAppState extends State<CoolTigerApp> {
       bodyMedium: GoogleFonts.inter(fontSize: 18),
       labelLarge: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w600),
     ).apply(
-      bodyColor: scheme.onBackground,
-      displayColor: scheme.onBackground,
+      bodyColor: scheme.onSurface,
+      displayColor: scheme.onSurface,
     );
 
     return ThemeData(
