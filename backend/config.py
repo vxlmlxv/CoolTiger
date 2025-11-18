@@ -47,9 +47,6 @@ class Settings(BaseSettings):
     clova_speech_api_key: str | None = None
     """API key for Clova Speech"""
     
-    clova_speech_secret: str | None = None
-    """Secret key for Clova Speech"""
-    
     # Clova Studio settings
     clova_studio_endpoint: str | None = None
     """Endpoint URL for Clova Studio API"""

@@ -61,22 +61,24 @@ def transcribe_audio(audio_bytes: bytes, mime_type: str = "audio/wav") -> str:
     
     logger.info(f"Starting audio transcription with CLOVA Speech (mime_type: {mime_type})")
     
-    # Prepare headers for CLOVA Speech API
-    # Note: These header keys are placeholders - update with actual Naver API requirements
-    # Common patterns: "X-NCP-APIGW-API-KEY", "X-NCP-APIGW-API-KEY-ID", etc.
+
     headers = {
-        "X-CLOVASPEECH-API-KEY": settings.clova_speech_api_key,  # TODO: Verify actual header name
-        "X-CLOVASPEECH-SECRET": settings.clova_speech_secret,      # TODO: Verify actual header name
-        "Content-Type": mime_type,
+        "X-CLOVASPEECH-API-KEY": settings.clova_speech_api_key,  
+        "Content-Type": 'application/json;UTF-8',
     }
     
+    body = {
+        "url": audio_url,
+        "language": "ko-KR",
+    }
+
     try:
         # Send POST request to CLOVA Speech endpoint
         logger.debug(f"Sending request to {settings.clova_speech_endpoint}")
         
         with httpx.Client(timeout=30.0) as client:
             response = client.post(
-                settings.clova_speech_endpoint,
+                settings.clova_speech_endpoint + "/recognizer/url",
                 headers=headers,
                 content=audio_bytes,
             )

@@ -212,10 +212,8 @@ def _call_clova_studio(payload: dict[str, Any]) -> dict[str, Any]:
     # TODO: Replace with actual Naver CLOVA Studio header names
     # Common patterns: "X-NCP-APIGW-API-KEY", "X-NCP-CLOVASTUDIO-API-KEY", etc.
     headers = {
-        "X-CLOVASTUDIO-API-KEY": settings.clova_studio_api_key,        # TODO: Verify actual header name
-        "X-CLOVASTUDIO-API-SECRET": settings.clova_studio_api_secret,  # TODO: Verify actual header name
-        "X-CLOVASTUDIO-REQUEST-ID": settings.clova_studio_request_id or "",  # TODO: Verify if needed
-        "Content-Type": "application/json",
+        "Authorization": f"Bearer {settings.clova_studio_api_key}",
+        "Content-Type": "application/json"
     }
     
     try:
@@ -223,7 +221,7 @@ def _call_clova_studio(payload: dict[str, Any]) -> dict[str, Any]:
         
         with httpx.Client(timeout=60.0) as client:
             response = client.post(
-                settings.clova_studio_endpoint,
+                settings.clova_studio_endpoint + "/v3/chat-completions/HCX-DASH-002",
                 headers=headers,
                 json=payload,
             )
@@ -343,24 +341,12 @@ def _extract_generated_text(response_data: dict[str, Any]) -> str:
     # TODO: Update based on actual CLOVA Studio response structure
     # Common response structures:
     
-    # Option 1: Direct text field
-    if "text" in response_data:
-        return response_data["text"]
-    
     # Option 2: Result wrapper
     if "result" in response_data:
         result = response_data["result"]
         if isinstance(result, dict) and "message" in result:
             return result["message"].get("content", "")
-    
-    # Option 3: Choices array (OpenAI-like structure)
-    if "choices" in response_data and response_data["choices"]:
-        first_choice = response_data["choices"][0]
-        if "message" in first_choice:
-            return first_choice["message"].get("content", "")
-        if "text" in first_choice:
-            return first_choice["text"]
-    
+
     # Option 4: Message content
     if "message" in response_data and "content" in response_data["message"]:
         return response_data["message"]["content"]
