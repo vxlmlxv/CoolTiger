@@ -5,7 +5,8 @@ import os
 from typing import Annotated
 
 import httpx
-from fastapi import Depends, HTTPException, status
+from fastapi import APIRouter, UploadFile, File, Form, Response, Depends, HTTPException, status 
+
 
 
 class ClovaSpeechService:

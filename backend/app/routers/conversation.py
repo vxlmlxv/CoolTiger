@@ -9,6 +9,7 @@ from uuid import uuid4
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from fastapi.responses import JSONResponse, StreamingResponse
 from google.cloud import firestore, storage
+from typing import Optional
 
 from ..schemas import ConversationLog
 from ..services import (
@@ -20,6 +21,8 @@ from ..services import (
 )
 
 router = APIRouter()
+
+
 
 
 @router.get("/conversation", response_model=list[ConversationLog])
@@ -48,6 +51,7 @@ async def handle_conversation(
     clova_speech: ClovaSpeechDep = Depends(),
     clova_studio: ClovaStudioDep = Depends(),
     google_tts: GoogleTTSDep = Depends(),
+    debug: Optional[bool] = False,
 ):
     bucket_name = _require_env("GCS_AUDIO_BUCKET")
     audio_bytes = await audio_file.read()
@@ -82,6 +86,7 @@ async def handle_conversation(
             "transcriptConfidence": confidence,
         },
     )
+
     reply_text = (llm_payload or {}).get("text")
     if not reply_text:
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="LLM returned no content")
@@ -119,6 +124,14 @@ async def handle_conversation(
         )
         return JSONResponse(content=response)
 
+        if debug:
+            return {
+                "seniorId": senior_id,
+                "guardianId": guardian_id,
+                "transcript": transcript,
+                "filename": audio_file.filename,
+                
+            }
     reply_audio_bytes = google_tts.synthesize(reply_text)
     reply_blob = _upload_bytes(
         storage_client=storage_client,
