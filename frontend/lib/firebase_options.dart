@@ -85,4 +85,5 @@ class DefaultFirebaseOptions {
     storageBucket: 'cooltiger.firebasestorage.app',
     measurementId: 'G-CVTYFFZX5V',
   );
+
 }
