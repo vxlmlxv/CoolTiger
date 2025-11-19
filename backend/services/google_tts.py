@@ -76,7 +76,6 @@ def synthesize_speech(prompt: str, text: str) -> bytes:
         voice = texttospeech.VoiceSelectionParams(
             language_code=settings.google_tts_language_code,
             name=settings.google_tts_voice_name,
-            model_name="gemini-2.5-pro-tts"
         )
         
 

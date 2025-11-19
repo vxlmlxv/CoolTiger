@@ -5,6 +5,9 @@ import 'package:just_audio/just_audio.dart';
 import 'dart:typed_data';
 
 import '../app_config.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:http/http.dart' as http;
+import 'dart:io' show File; // For non-web platforms
 
 /// Model for conversation turns
 class ConversationTurn {
@@ -259,9 +262,12 @@ class _SeniorCallScreenState extends State<SeniorCallScreen> {
         final data = response.data;
 
         setState(() {
-          // Add senior's message (placeholder since backend doesn't return transcript yet)
+          // Add senior's message with actual transcript
           _conversation.add(
-            ConversationTurn(speaker: 'senior', text: '(음성 전달됨)'),
+            ConversationTurn(
+              speaker: 'senior',
+              text: data['senior_text'] ?? '(음성 전달됨)',
+            ),
           );
 
           // Add AI's response
@@ -277,8 +283,8 @@ class _SeniorCallScreenState extends State<SeniorCallScreen> {
         // Auto-scroll to bottom
         _scrollToBottom();
 
-        // Auto-play AI response if TTS URL is available
-        if (data['tts_url'] != null) {
+        // Auto-play AI response immediately (supports base64 data URLs)
+        if (data['tts_url'] != null && data['tts_url'].toString().isNotEmpty) {
           _playTts(data['tts_url']);
         }
       }
@@ -296,11 +302,23 @@ class _SeniorCallScreenState extends State<SeniorCallScreen> {
 
   Future<Uint8List?> _readAudioFile(String path) async {
     try {
-      // For web platform, the path might be a blob URL or the actual bytes
-      // This is a simplified implementation
-      // TODO: Implement proper audio file reading for web platform
-      // You may need to use platform-specific code here
-      return null; // Placeholder
+      if (kIsWeb) {
+        // For web: path is a blob URL from record package
+        // Fetch the blob and convert to bytes
+        final response = await http.get(Uri.parse(path));
+        if (response.statusCode == 200) {
+          return response.bodyBytes;
+        }
+        debugPrint('Failed to fetch audio blob: ${response.statusCode}');
+        return null;
+      } else {
+        // For mobile/desktop: read file normally
+        final file = File(path);
+        if (await file.exists()) {
+          return await file.readAsBytes();
+        }
+        return null;
+      }
     } catch (e) {
       debugPrint('Error reading audio file: $e');
       return null;
@@ -313,10 +331,13 @@ class _SeniorCallScreenState extends State<SeniorCallScreen> {
     }
 
     try {
-      // TODO: Once backend implements cloud storage for TTS audio,
-      // this will play the audio from the URL
+      // just_audio supports both HTTP URLs and base64 data URLs
+      // Base64 format: data:audio/mp3;base64,<base64_string>
       await _audioPlayer.setUrl(url);
       await _audioPlayer.play();
+      debugPrint(
+        'Playing TTS audio from ${url.length > 50 ? "base64 data" : url}',
+      );
     } catch (e) {
       debugPrint('Error playing TTS audio: $e');
       // Don't show error to user for TTS playback issues
@@ -498,7 +519,7 @@ class _SeniorCallScreenState extends State<SeniorCallScreen> {
                         color: _isRecording ? Colors.red : Colors.blue,
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.2),
+                            color: Colors.black.withValues(alpha: 0.2),
                             blurRadius: 8,
                             spreadRadius: 2,
                           ),

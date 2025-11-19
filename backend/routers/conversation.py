@@ -77,17 +77,15 @@ async def start_conversation(request: ConversationStartRequest):
         append_turn(request.senior_id, call_id, "ai", ai_text)
         logger.info("Saved AI greeting turn to Firestore")
         
-        # Synthesize speech audio
-        audio_bytes = synthesize_speech(ai_text)
+        # Synthesize speech audio (empty prompt for first greeting)
+        audio_bytes = synthesize_speech("", ai_text)
         logger.info(f"Synthesized speech audio: {len(audio_bytes)} bytes")
         
-        # TODO: Upload audio_bytes to cloud storage (GCS, S3) and get public URL
-        # For MVP, we'll set tts_url to None or placeholder
-        # In production, you would:
-        # 1. Upload audio_bytes to Google Cloud Storage
-        # 2. Generate a signed URL or make it publicly accessible
-        # 3. Return that URL in tts_url
-        tts_url = None  # Placeholder - implement cloud storage upload
+        # Convert audio to base64 data URL for immediate playback
+        import base64
+        audio_base64 = base64.b64encode(audio_bytes).decode('utf-8')
+        tts_url = f"data:audio/mp3;base64,{audio_base64}"
+        logger.info("Converted TTS audio to base64 data URL")
         
         return ConversationStartResponse(
             success=True,
@@ -188,21 +186,27 @@ async def reply_to_conversation(
         append_turn(senior_id, call_id, "ai", ai_text)
         logger.info("Saved AI reply turn to Firestore")
         
-        # Synthesize speech audio
-        audio_bytes = synthesize_speech(ai_text)
+        # Synthesize speech audio with conversation context as prompt
+        # Build prompt from recent conversation for natural TTS
+        conversation_context = "\n".join([
+            f"{turn['speaker']}: {turn['text']}"
+            for turn in recent_turns[-3:] if turn  # Last 3 turns for context
+        ])
+        
+        audio_bytes = synthesize_speech(conversation_context, ai_text)
         logger.info(f"Synthesized speech audio: {len(audio_bytes)} bytes")
         
-        # TODO: Upload audio_bytes to cloud storage and get public URL
-        # For MVP, setting tts_url to None
-        # In production:
-        # 1. Upload to cloud storage with unique filename (e.g., {call_id}_{timestamp}.mp3)
-        # 2. Return signed or public URL
-        # 3. Consider implementing audio streaming for better UX
-        tts_url = None  # Placeholder - implement cloud storage upload
+        # Convert audio to base64 data URL for immediate playback
+        # This eliminates need for cloud storage and reduces latency
+        import base64
+        audio_base64 = base64.b64encode(audio_bytes).decode('utf-8')
+        tts_url = f"data:audio/mp3;base64,{audio_base64}"
+        logger.info("Converted TTS audio to base64 data URL")
         
         return ConversationReplyResponse(
             success=True,
             ai_text=ai_text,
+            senior_text=senior_text,  # Include transcript for UI
             tts_url=tts_url,
             message="Reply processed successfully"
         )
