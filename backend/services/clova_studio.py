@@ -25,163 +25,170 @@ class ClovaStudioError(Exception):
 def generate_reply(transcript_history: list[dict], senior_profile: dict) -> str:
     """
     Generate a conversational reply using CLOVA Studio LLM.
-    
+
     Creates a contextual prompt from the conversation history and senior profile,
     then calls CLOVA Studio to generate a warm, friendly response in Korean.
-    
+
     Args:
         transcript_history: List of conversation turns, each dict containing:
                            {"speaker": "senior" | "ai", "text": "..."}
         senior_profile: Dictionary with senior information:
                        {"name": str, "age": int, "preferences": str, ...}
-    
+
     Returns:
         str: The generated AI response text (1-2 sentences in Korean)
-        
+
     Raises:
         ClovaStudioError: If the API request fails
         ValueError: If required configuration is missing
-        
-    Example:
-        >>> history = [
-        ...     {"speaker": "ai", "text": "안녕하세요! 오늘 기분이 어떠세요?"},
-        ...     {"speaker": "senior", "text": "좋아요, 날씨가 참 좋네요."}
-        ... ]
-        >>> profile = {"name": "김할머니", "age": 75, "preferences": "gardening"}
-        >>> reply = generate_reply(history, profile)
-        >>> print(reply)
     """
-    # Validate configuration
+    # 1) Check env config
     _validate_config()
-    
-    # Build the prompt
+
+    # 2) Build the user-facing prompt text from history + profile
     prompt = _build_conversation_prompt(transcript_history, senior_profile)
-    
+
     logger.info("Generating conversational reply with CLOVA Studio")
     logger.debug(f"Prompt length: {len(prompt)} chars")
-    
-    # Prepare request payload
-    # TODO: Adjust payload structure based on actual CLOVA Studio API requirements
-    payload = {
+
+    # 3) Build CLOVA Studio v3/chat-completions payload
+    #    - system: role / behavior
+    #    - user:   actual prompt text
+    payload: dict[str, Any] = {
         "messages": [
             {
                 "role": "system",
-                "content": "You are a warm, caring Korean-speaking AI companion calling a senior to check on their well-being. Respond naturally, showing genuine interest and warmth."
+                "content": [
+                    {
+                        "type": "text",
+                        "text": (
+                            "You are a warm, caring Korean-speaking AI companion "
+                            "talking to an elderly person. "
+                            "Always respond in polite, natural Korean, "
+                            "in 1-2 sentences, showing empathy and interest in "
+                            "their daily life and well-being."
+                        ),
+                    }
+                ],
             },
             {
                 "role": "user",
-                "content": prompt
-            }
+                "content": [
+                    {
+                        "type": "text",
+                        "text": prompt,
+                    }
+                ],
+            },
         ],
-        "maxTokens": 100,
-        "temperature": 0.7,
-        "topK": 0,
-        "topP": 0.9,
-        "repeatPenalty": 1.2,
-        "includeAiFilters": True
+
+        "includeAiFilters": True,
     }
-    
+
     try:
-        # Call CLOVA Studio API
+        # 4) Call CLOVA Studio
         response_data = _call_clova_studio(payload)
-        
-        # Extract generated text from response
-        # TODO: Update based on actual CLOVA Studio response structure
+
+        # 5) Extract the assistant's text from the response
         generated_text = _extract_generated_text(response_data)
-        
+
         if not generated_text:
             logger.warning("Received empty response from CLOVA Studio")
-            return "죄송합니다, 다시 말씀해 주시겠어요?"  # Fallback response
-        
-        logger.info(f"Successfully generated reply (length: {len(generated_text)} chars)")
+            return "죄송합니다, 다시 말씀해 주시겠어요?"  # Fallback reply
+
+        logger.info(
+            f"Successfully generated reply (length: {len(generated_text)} chars)"
+        )
         return generated_text.strip()
-    
+
     except Exception as e:
         logger.error(f"Failed to generate reply: {e}")
         raise
 
-
 def analyze_conversation(full_transcript: str, senior_profile: dict) -> dict:
     """
     Analyze a complete conversation transcript using CLOVA Studio LLM.
-    
+
     Sends the full conversation transcript to CLOVA Studio with instructions
     to analyze the conversation and return structured analysis including summary,
     mood assessment, and risk level evaluation.
-    
+
     Args:
         full_transcript: Complete conversation transcript as a single string
         senior_profile: Dictionary with senior information:
                        {"name": str, "age": int, "preferences": str, ...}
-    
+
     Returns:
         dict: Analysis results with keys:
               - summary (str): Brief conversation summary
               - mood (str): Assessed mood (e.g., "happy", "sad", "neutral", "anxious")
               - risk_level (str): Risk assessment (e.g., "low", "medium", "high")
-        
+
     Raises:
         ClovaStudioError: If the API request fails or JSON parsing fails
         ValueError: If required configuration is missing
-        
-    Example:
-        >>> transcript = "AI: 안녕하세요!\\nSenior: 안녕하세요, 오늘 기분이 좋아요."
-        >>> profile = {"name": "김할머니", "age": 75}
-        >>> analysis = analyze_conversation(transcript, profile)
-        >>> print(analysis["mood"])  # "happy"
-        >>> print(analysis["risk_level"])  # "low"
     """
-    # Validate configuration
+    # 1) Check env config
     _validate_config()
-    
-    # Build analysis prompt
+
+    # 2) Build analysis prompt (includes instructions + transcript)
     analysis_prompt = _build_analysis_prompt(full_transcript, senior_profile)
-    
+
     logger.info("Analyzing conversation with CLOVA Studio")
     logger.debug(f"Transcript length: {len(full_transcript)} chars")
-    
-    # Prepare request payload
-    # TODO: Adjust payload structure based on actual CLOVA Studio API requirements
-    payload = {
+
+    # 3) Build CLOVA Studio v3/chat-completions payload
+    payload: dict[str, Any] = {
         "messages": [
             {
                 "role": "system",
-                "content": "You are an expert analyst evaluating conversations with seniors for well-being assessment. Provide structured JSON output only."
+                "content": [
+                    {
+                        "type": "text",
+                        "text": (
+                            "You are an expert mental health and wellness analyst. "
+                            "You analyze conversations with elderly users and return "
+                            "ONLY valid JSON with the keys summary, mood, risk_level in Korean."
+                        ),
+                    }
+                ],
             },
             {
                 "role": "user",
-                "content": analysis_prompt
-            }
+                "content": [
+                    {
+                        "type": "text",
+                        "text": analysis_prompt,
+                    }
+                ],
+            },
         ],
-        "maxTokens": 500,
-        "temperature": 0.3,  # Lower temperature for more consistent analysis
-        "topK": 0,
-        "topP": 0.8,
-        "repeatPenalty": 1.0,
-        "includeAiFilters": True
+        "temperature": 0.3,  # lower temp = more stable JSON
+        "includeAiFilters": True,
     }
-    
+
     try:
-        # Call CLOVA Studio API
+        # 4) Call CLOVA Studio
         response_data = _call_clova_studio(payload)
-        
-        # Extract generated text
+
+        # 5) Get raw text (should be JSON or JSON + noise)
         generated_text = _extract_generated_text(response_data)
-        
         if not generated_text:
             logger.error("Received empty analysis from CLOVA Studio")
             raise ClovaStudioError("Empty response from CLOVA Studio")
-        
-        # Parse JSON from the response
+
+        # 6) Parse JSON from the text (robust to extra explanation)
         analysis = _parse_analysis_json(generated_text)
-        
-        logger.info(f"Successfully analyzed conversation: mood={analysis.get('mood')}, risk={analysis.get('risk_level')}")
+
+        logger.info(
+            "Successfully analyzed conversation: "
+            f"mood={analysis.get('mood')}, risk={analysis.get('risk_level')}"
+        )
         return analysis
-    
+
     except Exception as e:
         logger.error(f"Failed to analyze conversation: {e}")
         raise
-
 
 def _validate_config() -> None:
     """Validate that required CLOVA Studio configuration is present."""
@@ -198,37 +205,37 @@ def _validate_config() -> None:
 def _call_clova_studio(payload: dict[str, Any]) -> dict[str, Any]:
     """
     Make HTTP request to CLOVA Studio API.
-    
+
     Args:
         payload: Request payload dictionary
-        
+
     Returns:
         dict: JSON response from CLOVA Studio
-        
+
     Raises:
         ClovaStudioError: If the request fails
     """
-    # Prepare headers
-    # TODO: Replace with actual Naver CLOVA Studio header names
-    # Common patterns: "X-NCP-APIGW-API-KEY", "X-NCP-CLOVASTUDIO-API-KEY", etc.
+
     headers = {
+        "Content-Type": "application/json",
         "Authorization": f"Bearer {settings.clova_studio_api_key}",
-        "Content-Type": "application/json"
     }
-    
+
+    url = settings.clova_studio_endpoint + "v3/chat-completions/HCX-DASH-002"
+
     try:
-        logger.debug(f"Calling CLOVA Studio endpoint: {settings.clova_studio_endpoint}")
-        
+        logger.debug(f"Calling CLOVA Studio endpoint: {url}")
+
         with httpx.Client(timeout=60.0) as client:
             response = client.post(
-                settings.clova_studio_endpoint + "/v3/chat-completions/HCX-DASH-002",
+                url,
                 headers=headers,
                 json=payload,
             )
-        
+
         logger.info(f"CLOVA Studio API response status: {response.status_code}")
-        
-        # Handle HTTP errors
+
+        # HTTP error handling
         if response.status_code != 200:
             error_message = f"CLOVA Studio API error: {response.status_code}"
             try:
@@ -238,15 +245,14 @@ def _call_clova_studio(payload: dict[str, Any]) -> dict[str, Any]:
             except Exception:
                 error_message += f" - {response.text}"
                 logger.error(f"API error response (raw): {response.text}")
-            
+
             raise ClovaStudioError(error_message)
-        
+
         return response.json()
-    
+
     except httpx.HTTPError as e:
         logger.error(f"HTTP error during CLOVA Studio request: {e}")
         raise ClovaStudioError(f"Failed to connect to CLOVA Studio API: {e}")
-
 
 def _build_conversation_prompt(transcript_history: list[dict], senior_profile: dict) -> str:
     """
@@ -261,7 +267,7 @@ def _build_conversation_prompt(transcript_history: list[dict], senior_profile: d
     """
     # Format senior profile
     name = senior_profile.get("name", "어르신")
-    age = senior_profile.get("age", "")
+    age = senior_profile.get("age", "70")
     preferences = senior_profile.get("preferences", "")
     
     profile_text = f"대화 상대: {name}"
@@ -331,29 +337,43 @@ JSON만 출력하고 다른 설명은 포함하지 마세요."""
 def _extract_generated_text(response_data: dict[str, Any]) -> str:
     """
     Extract generated text from CLOVA Studio response.
-    
+
+    Expected shape (from v3/chat-completions):
+
+    {
+        "status": { ... },
+        "result": {
+            "message": {
+                "role": "assistant",
+                "content": "..."
+            },
+            ...
+        }
+    }
+
     Args:
         response_data: JSON response from CLOVA Studio
-        
+
     Returns:
-        str: Extracted text
+        str: Extracted assistant message text (or "" if missing)
     """
-    # TODO: Update based on actual CLOVA Studio response structure
-    # Common response structures:
-    
-    # Option 2: Result wrapper
-    if "result" in response_data:
-        result = response_data["result"]
-        if isinstance(result, dict) and "message" in result:
-            return result["message"].get("content", "")
+    # Safest path: result.message.content
+    result = response_data.get("result")
+    if isinstance(result, dict):
+        message = result.get("message")
+        if isinstance(message, dict):
+            content = message.get("content")
+            if isinstance(content, str):
+                return content
 
-    # Option 4: Message content
-    if "message" in response_data and "content" in response_data["message"]:
-        return response_data["message"]["content"]
-    
-    logger.warning(f"Unknown response structure. Keys: {response_data.keys()}")
+    # Extra fallback: sometimes someone might pass result directly
+    if "message" in response_data and isinstance(response_data["message"], dict):
+        content = response_data["message"].get("content")
+        if isinstance(content, str):
+            return content
+
+    logger.warning(f"Unknown response structure. Keys: {list(response_data.keys())}")
     return ""
-
 
 def _parse_analysis_json(text: str) -> dict:
     """

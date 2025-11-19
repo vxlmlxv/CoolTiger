@@ -6,9 +6,10 @@ for managing senior call records and conversation turns in Firestore.
 """
 
 import firebase_admin
-from firebase_admin import credentials, firestore
+from firebase_admin import credentials, firestore, initialize_app
+from google.auth import default as google_auth_default
 from google.cloud.firestore_v1 import SERVER_TIMESTAMP
-
+import os
 from config import settings
 
 
@@ -16,15 +17,19 @@ from config import settings
 _app_initialized = False
 
 if not _app_initialized:
-    cred = credentials.Certificate(settings.google_application_credentials)
-    firebase_admin.initialize_app(cred, {
-        'projectId': settings.google_project_id,
-    })
-    _app_initialized = True
-
-# Global Firestore client instance
+    if not firebase_admin._apps:
+        if settings.google_application_credentials and os.path.exists(settings.google_application_credentials):
+            cred = credentials.Certificate(settings.google_application_credentials)
+            initialize_app(cred, {
+                'projectId': settings.google_project_id,
+            })
+        else:
+            # Cloud Run / ADC
+            cred, project_id = google_auth_default()
+            initialize_app(cred, {
+                'projectId': project_id,
+            })
 db: firestore.Client = firestore.client()
-
 
 def create_call_doc(senior_id: str) -> str:
     """

@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     # Application settings
     env: str = "development"
     
-    app_name: str = "hyosimi-backend"
+    app_name: str = "cooltiger-backend"
     """Application name"""
     
     port: str = "8000"
@@ -66,7 +66,8 @@ class Settings(BaseSettings):
     
     model_config = SettingsConfigDict(
         env_file=".env",
-        env_file_encoding="utf-8"
+        env_file_encoding="utf-8",
+        extra="ignore"
     )
 
 

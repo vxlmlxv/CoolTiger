@@ -56,6 +56,6 @@ async def root():
         
     Example:
         GET /
-        Response: {"message": "Hyosimi backend is running"}
+        Response: {"message": "CoolTiger backend is running"}
     """
-    return {"message": "Hyosimi backend is running"}
+    return {"message": "CoolTiger backend is running"}

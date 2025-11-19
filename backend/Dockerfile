@@ -25,4 +25,4 @@ EXPOSE 8000
 
 # Run the application
 # Uses $PORT environment variable for cloud deployment (e.g., Cloud Run, Heroku)
-CMD uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080"]

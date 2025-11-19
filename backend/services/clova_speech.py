@@ -64,12 +64,15 @@ def transcribe_audio(audio_bytes: bytes, mime_type: str = "audio/wav") -> str:
 
     headers = {
         "X-CLOVASPEECH-API-KEY": settings.clova_speech_api_key,  
-        "Content-Type": 'application/json;UTF-8',
+        "Content-Type": 'multipart/form-data',
     }
     
     body = {
-        "url": audio_url,
-        "language": "ko-KR",
+        "media": audio_bytes,
+        "params":{
+            "language": "ko-KR",
+            "completion":"sync"
+        }
     }
 
     try:
@@ -78,9 +81,9 @@ def transcribe_audio(audio_bytes: bytes, mime_type: str = "audio/wav") -> str:
         
         with httpx.Client(timeout=30.0) as client:
             response = client.post(
-                settings.clova_speech_endpoint + "/recognizer/url",
+                settings.clova_speech_endpoint + "/recognizer/upload",
                 headers=headers,
-                content=audio_bytes,
+                content=body,
             )
         
         # Log response status
@@ -127,41 +130,110 @@ def transcribe_audio(audio_bytes: bytes, mime_type: str = "audio/wav") -> str:
 def _extract_transcript(response_data: dict[str, Any]) -> str:
     """
     Extract transcript text from CLOVA Speech API response.
-    
+
     This helper function handles the response structure parsing and provides
     a single point to update when the response format changes.
-    
+
+    For the current CLOVA Speech response (example):
+
+        {
+            "result": "COMPLETED",
+            "message": "Succeeded",
+            ...
+            "segments": [
+                {
+                    "start": 5870,
+                    "end": 8160,
+                    "text": "서울 수영장입니다.",
+                    "confidence": 0.9626975,
+                    "diarization": {"label": "2"},
+                    "speaker": {"label": "2", "name": "B", "edited": false},
+                    "words": [...],
+                    "textEdited": "서울 수영장입니다."
+                },
+                ...
+            ],
+            "text": "서울 수영장입니다. 입장료가 얼마예요? 5천 원이에요. 감사합니다.",
+            ...
+        }
+
+    we build an LLM-friendly dialog string like:
+
+        B: 서울 수영장입니다.
+        A: 입장료가 얼마예요? 5천 원이에요. 감사합니다.
+
     Args:
         response_data: The JSON response from CLOVA Speech API
-        
+
     Returns:
-        str: The extracted transcript text
-        
-    Note:
-        Update this function based on the actual CLOVA Speech API response format.
-        Common response structures:
-        - {"text": "transcript here"}
-        - {"result": {"text": "transcript here"}}
-        - {"segments": [{"text": "part1"}, {"text": "part2"}]}
+        str: The extracted transcript text, formatted for LLM consumption.
     """
-    # TODO: Update based on actual CLOVA Speech response structure
-    # Example implementations:
-    
-    # Option 1: Direct text field
-    if "text" in response_data:
-        return response_data["text"]
-    
-    # Option 2: Nested result
-    if "result" in response_data and "text" in response_data["result"]:
-        return response_data["result"]["text"]
-    
-    # Option 3: Segments that need concatenation
-    if "segments" in response_data:
-        segments = response_data["segments"]
-        if isinstance(segments, list):
-            texts = [seg.get("text", "") for seg in segments]
-            return " ".join(texts)
-    
-    # If no known structure matches, log the structure for debugging
-    logger.warning(f"Unknown response structure, returning empty string. Response keys: {response_data.keys()}")
+
+    # 1) Preferred: use segments with speaker info and (edited) text
+    segments = response_data.get("segments")
+    if isinstance(segments, list) and segments:
+        lines: list[str] = []
+
+        for seg in segments:
+            if not isinstance(seg, dict):
+                continue
+
+            # Prefer textEdited if present, fall back to text
+            text = seg.get("textEdited") or seg.get("text") or ""
+            if not isinstance(text, str) or not text.strip():
+                continue
+            text = text.strip()
+
+            # Speaker info: try speaker.name -> speaker.label -> diarization.label
+            speaker_name = None
+            speaker_info = seg.get("speaker") or seg.get("diarization")
+
+            if isinstance(speaker_info, dict):
+                speaker_name = speaker_info.get("name") or speaker_info.get("label")
+
+            if not isinstance(speaker_name, str) or not speaker_name.strip():
+                # Generic fallback if no label/name available
+                speaker_name = "Speaker"
+
+            lines.append(f"{speaker_name}: {text}")
+
+        if lines:
+            # Dialog-style text is very LLM-friendly
+            formatted_dialog = "\n".join(lines)
+            logger.debug(f"Extracted dialog-style transcript from segments:\n{formatted_dialog}")
+            return formatted_dialog
+
+    # 2) Fallback: use top-level text if available
+    top_level_text = response_data.get("text")
+    if isinstance(top_level_text, str) and top_level_text.strip():
+        logger.debug("Using top-level 'text' field for transcript.")
+        return top_level_text.strip()
+
+    # 3) Additional generic fallbacks for other possible shapes
+    #    - {"result": {"text": "..."}}
+    result_obj = response_data.get("result")
+    if isinstance(result_obj, dict):
+        nested_text = result_obj.get("text")
+        if isinstance(nested_text, str) and nested_text.strip():
+            logger.debug("Using nested 'result.text' field for transcript.")
+            return nested_text.strip()
+
+    #    - {"segments": [{"text": "..."}, ...]} without speaker info
+    if isinstance(segments, list) and segments:
+        texts = []
+        for seg in segments:
+            if isinstance(seg, dict):
+                t = seg.get("textEdited") or seg.get("text")
+                if isinstance(t, str) and t.strip():
+                    texts.append(t.strip())
+        if texts:
+            concatenated = " ".join(texts)
+            logger.debug("Using concatenated 'segments[*].text' for transcript.")
+            return concatenated
+
+    # 4) If no known structure matches, log and return empty string
+    logger.warning(
+        "Unknown CLOVA Speech response structure, returning empty transcript. "
+        f"Top-level keys: {list(response_data.keys())}"
+    )
     return ""

@@ -11,9 +11,8 @@ const bool kDemoMode = true;
 
 /// Base URL for the FastAPI backend.
 ///
-/// TODO: Replace with actual Cloud Run URL when deploying to production.
-/// Example: "https://cooltiger-api-xxxx.run.app"
-const String kBaseApiUrl = "http://localhost:8000";
+const String kBaseApiUrl =
+    "https://cooltiger-backend-304653364245.asia-northeast3.run.app/";
 
 /// Demo user data for testing without Firebase.
 class DemoUser {
