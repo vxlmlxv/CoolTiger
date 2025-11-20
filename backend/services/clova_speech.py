@@ -58,10 +58,9 @@ def transcribe_audio(audio_bytes: bytes, mime_type: str = "audio/wav") -> str:
     logger.info(f"Starting audio transcription with CLOVA Speech (mime_type: {mime_type})")
     
     # Build multipart form data properly
+    # NOTE: Do NOT set Content-Type header manually - httpx will set it with the correct boundary
     headers = {
         "X-CLOVASPEECH-API-KEY": settings.clova_speech_api_key,
-        "Content-Type": 'multipart/form-data',
-
     }
     
     # Params as JSON string (CLOVA Speech API requirement)

@@ -43,79 +43,6 @@
 
 ## 🔧 Required Manual Actions
 
-### 1. Configure CLOVA Speech API Credentials
-
-**Priority: HIGH** - STT won't work without this
-
-**File:** `backend/.env`
-
-**Action:**
-
-```bash
-# Add these lines to backend/.env:
-CLOVA_SPEECH_ENDPOINT=https://clovaspeech-gw.ncloud.com
-CLOVA_SPEECH_API_KEY=your_actual_api_key_here
-CLOVA_SPEECH_SECRET=your_actual_secret_here
-```
-
-**How to get credentials:**
-
-1. Go to https://www.ncloud.com/
-2. Navigate to AI Services → CLOVA Speech
-3. Create a new project or use existing one
-4. Copy the API Key and Secret from the dashboard
-5. Endpoint is typically: `https://clovaspeech-gw.ncloud.com`
-
-**Test command:**
-
-```bash
-# After setting env vars, test with:
-cd backend
-python -c "from config import settings; print(f'API Key: {settings.clova_speech_api_key[:10]}...')"
-```
-
----
-
-### 2. Configure CLOVA Studio API Credentials
-
-**Priority: HIGH** - LLM won't work without this
-
-**File:** `backend/.env`
-
-**Action:**
-
-```bash
-# Add these lines to backend/.env:
-CLOVA_STUDIO_ENDPOINT=https://clovastudio.stream.ntruss.com
-CLOVA_STUDIO_API_KEY=your_api_key_here
-CLOVA_STUDIO_API_SECRET=your_api_secret_here
-```
-
-**How to get credentials:**
-
-1. Go to https://clovastudio.ncloud.com/
-2. Create account and new project
-3. Navigate to API Keys section
-4. Generate new API key and secret
-5. Copy both values
-
-**Note:** The endpoint in `clova_studio.py` already uses:
-
-```python
-url = settings.clova_studio_endpoint + "v3/chat-completions/HCX-DASH-002"
-```
-
-Make sure `HCX-DASH-002` is the correct model ID for your project. If different:
-
-**File:** `backend/services/clova_studio.py` (line ~223)
-
-```python
-# Change this line if your model ID is different:
-url = settings.clova_studio_endpoint + "v3/chat-completions/YOUR_MODEL_ID"
-```
-
----
-
 ### 3. Configure Google Cloud TTS Credentials
 
 **Priority: HIGH** - TTS won't work without this
@@ -229,52 +156,6 @@ The `record` package may provide bytes directly. Check if:
 final recordedData = await _recorder.stop();
 // recordedData might already be Uint8List on web
 ```
-
----
-
-### 5. Deploy Backend with Updated Code
-
-**Priority: HIGH** - Backend changes need deployment
-
-**Action:**
-
-```bash
-cd /Users/vxlmlxv/github/CoolTiger/backend
-
-# 1. Ensure .env is configured with all API keys
-cat .env  # Verify all keys are present
-
-# 2. Build new Docker image
-docker build -t asia-northeast3-docker.pkg.dev/cooltiger/cooltiger-backend-repo/cooltiger-backend:latest .
-
-# 3. Push to registry
-docker push asia-northeast3-docker.pkg.dev/cooltiger/cooltiger-backend-repo/cooltiger-backend:latest
-
-# 4. Deploy to Cloud Run
-gcloud run deploy cooltiger-backend \
-  --image=asia-northeast3-docker.pkg.dev/cooltiger/cooltiger-backend-repo/cooltiger-backend:latest \
-  --region=asia-northeast3 \
-  --platform=managed \
-  --allow-unauthenticated \
-  --set-env-vars="CLOVA_SPEECH_ENDPOINT=$CLOVA_SPEECH_ENDPOINT,CLOVA_SPEECH_API_KEY=$CLOVA_SPEECH_API_KEY,CLOVA_SPEECH_SECRET=$CLOVA_SPEECH_SECRET,CLOVA_STUDIO_ENDPOINT=$CLOVA_STUDIO_ENDPOINT,CLOVA_STUDIO_API_KEY=$CLOVA_STUDIO_API_KEY,CLOVA_STUDIO_API_SECRET=$CLOVA_STUDIO_API_SECRET,GOOGLE_TTS_LANGUAGE_CODE=ko-KR,GOOGLE_TTS_VOICE_NAME=ko-KR-Neural2-A,GOOGLE_TTS_AUDIO_ENCODING=MP3"
-
-# 5. Upload Google service account key
-# (See Cloud Run docs for mounting secrets)
-```
-
-**Note:** For Google credentials, use Cloud Run secrets:
-
-```bash
-# Create secret
-gcloud secrets create google-tts-key --data-file=backend/google_service_account.json
-
-# Update deployment to use secret
-gcloud run services update cooltiger-backend \
-  --update-secrets=GOOGLE_APPLICATION_CREDENTIALS=google-tts-key:latest \
-  --region=asia-northeast3
-```
-
----
 
 ### 6. Update Frontend Backend URL
 

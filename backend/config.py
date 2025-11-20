@@ -54,9 +54,6 @@ class Settings(BaseSettings):
     clova_studio_api_key: str | None = None
     """API key for Clova Studio"""
     
-    clova_studio_api_secret: str | None = None
-    """Secret key for Clova Studio"""
-    
     clova_studio_request_id: str | None = None
     """Request ID for Clova Studio"""
     

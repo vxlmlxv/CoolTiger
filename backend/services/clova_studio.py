@@ -198,9 +198,6 @@ def _validate_config() -> None:
     if not settings.clova_studio_api_key:
         raise ValueError("CLOVA Studio API key is not configured in settings")
     
-    if not settings.clova_studio_api_secret:
-        raise ValueError("CLOVA Studio API secret is not configured in settings")
-
 
 def _call_clova_studio(payload: dict[str, Any]) -> dict[str, Any]:
     """

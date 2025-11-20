@@ -9,6 +9,7 @@ import logging
 from typing import Optional
 
 import os
+from urllib import response
 from google.cloud import texttospeech
 
 from config import settings
@@ -22,7 +23,7 @@ class GoogleTTSError(Exception):
     pass
 
 
-def synthesize_speech(prompt: str, text: str) -> bytes:
+def synthesize_speech(text: str) -> bytes:
     """
     Synthesize speech from text using Google Cloud Text-to-Speech.
     
@@ -58,10 +59,6 @@ def synthesize_speech(prompt: str, text: str) -> bytes:
         logger.error("Google TTS voice name is not configured")
         raise ValueError("google_tts_voice_name is not configured in settings")
     
-    if not settings.google_tts_audio_encoding:
-        logger.error("Google TTS audio encoding is not configured")
-        raise ValueError("google_tts_audio_encoding is not configured in settings")
-    
     logger.info(f"Synthesizing speech with Google TTS (length: {len(text)} chars)")
     logger.debug(f"Voice: {settings.google_tts_voice_name}, Language: {settings.google_tts_language_code}")
     
@@ -70,7 +67,7 @@ def synthesize_speech(prompt: str, text: str) -> bytes:
         client = texttospeech.TextToSpeechClient()
         
         # Build synthesis input
-        synthesis_input = texttospeech.SynthesisInput(text=text, prompt=prompt)
+        synthesis_input = texttospeech.SynthesisInput(text=text)
         
         # Configure voice parameters
         voice = texttospeech.VoiceSelectionParams(
@@ -88,24 +85,25 @@ def synthesize_speech(prompt: str, text: str) -> bytes:
         response = client.synthesize_speech(
             input=synthesis_input,
             voice=voice,
-            audio_config=audio_config,
+            audio_config=audio_config
         )
         
         # Extract audio content from response
         audio_bytes = response.audio_content
         
-        if not audio_bytes:
-            logger.error("Received empty audio content from Google TTS")
+
+        if not response.audio_content:
+            logger.error(f"Google TTS API returned empty content. Text input was: '{text}'")
             raise GoogleTTSError("Google TTS returned empty audio content")
-        
-        logger.info(f"Successfully synthesized speech (audio size: {len(audio_bytes)} bytes)")
-        return audio_bytes
+            
+        logger.info(f"Successfully synthesized speech (audio size: {len(response.audio_content)} bytes)")
+        return response.audio_content
     
     except Exception as e:
         logger.error(f"Failed to synthesize speech: {e}")
-        if isinstance(e, (GoogleTTSError, ValueError)):
-            raise
         raise GoogleTTSError(f"Google TTS synthesis failed: {e}")
+    
+    
 
 
 def _get_audio_encoding(encoding_str: str) -> texttospeech.AudioEncoding:

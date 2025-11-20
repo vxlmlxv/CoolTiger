@@ -78,7 +78,7 @@ async def start_conversation(request: ConversationStartRequest):
         logger.info("Saved AI greeting turn to Firestore")
         
         # Synthesize speech audio (empty prompt for first greeting)
-        audio_bytes = synthesize_speech("", ai_text)
+        audio_bytes = synthesize_speech("안녕하세요. 오늘은 어떠신가요?")
         logger.info(f"Synthesized speech audio: {len(audio_bytes)} bytes")
         
         # Convert audio to base64 data URL for immediate playback
@@ -193,7 +193,7 @@ async def reply_to_conversation(
             for turn in recent_turns[-3:] if turn  # Last 3 turns for context
         ])
         
-        audio_bytes = synthesize_speech(conversation_context, ai_text)
+        audio_bytes = synthesize_speech(conversation_context)
         logger.info(f"Synthesized speech audio: {len(audio_bytes)} bytes")
         
         # Convert audio to base64 data URL for immediate playback
