@@ -55,24 +55,25 @@ def transcribe_audio(audio_bytes: bytes, mime_type: str = "audio/wav") -> str:
         logger.error("CLOVA Speech API key is not configured")
         raise ValueError("CLOVA Speech API key is not configured in settings")
     
-    if not settings.clova_speech_secret:
-        logger.error("CLOVA Speech secret is not configured")
-        raise ValueError("CLOVA Speech secret is not configured in settings")
-    
     logger.info(f"Starting audio transcription with CLOVA Speech (mime_type: {mime_type})")
     
-
+    # Build multipart form data properly
     headers = {
-        "X-CLOVASPEECH-API-KEY": settings.clova_speech_api_key,  
+        "X-CLOVASPEECH-API-KEY": settings.clova_speech_api_key,
         "Content-Type": 'multipart/form-data',
+
     }
     
-    body = {
-        "media": audio_bytes,
-        "params":{
-            "language": "ko-KR",
-            "completion":"sync"
-        }
+    # Params as JSON string (CLOVA Speech API requirement)
+    params = {
+        "language": "ko-KR",
+        "completion": "sync"
+    }
+    
+    import json
+    files = {
+        "media": ("audio.wav", audio_bytes, mime_type),
+        "params": (None, json.dumps(params), "application/json")
     }
 
     try:
@@ -83,7 +84,7 @@ def transcribe_audio(audio_bytes: bytes, mime_type: str = "audio/wav") -> str:
             response = client.post(
                 settings.clova_speech_endpoint + "/recognizer/upload",
                 headers=headers,
-                content=body,
+                files=files,
             )
         
         # Log response status

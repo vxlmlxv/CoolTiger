@@ -59,6 +59,7 @@ class ConversationReplyResponse(BaseModel):
     Attributes:
         success: Whether the reply was successfully generated
         ai_text: The AI's response text
+        senior_text: The transcribed text from the senior's audio input
         tts_url: Optional URL to the text-to-speech audio file
         message: Optional message with additional context or error details
         
@@ -66,11 +67,13 @@ class ConversationReplyResponse(BaseModel):
         >>> response = ConversationReplyResponse(
         ...     success=True,
         ...     ai_text="That sounds wonderful! Tell me more.",
+        ...     senior_text="I went for a walk today.",
         ...     tts_url="https://storage.example.com/reply_audio.mp3"
         ... )
     """
     success: bool
     ai_text: str
+    senior_text: str
     tts_url: str | None = None
     message: str | None = None
 
