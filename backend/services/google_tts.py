@@ -72,7 +72,7 @@ def synthesize_speech(text: str) -> bytes:
         # Configure voice parameters
         voice = texttospeech.VoiceSelectionParams(
             language_code=settings.google_tts_language_code,
-            name=settings.google_tts_voice_name,
+            # name=settings.google_tts_voice_name,
         )
         
 
