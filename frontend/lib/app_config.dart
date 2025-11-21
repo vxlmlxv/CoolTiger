@@ -17,9 +17,9 @@ class AppConfig {
 /// For iOS Simulator: Use 'http://127.0.0.1:8000'
 /// For Web (Local): Use 'http://127.0.0.1:8000' or 'http://localhost:8000'
 /// For Production: Use your Cloud Run URL
-const String kBaseApiUrl = kReleaseMode
-    ? 'https://cooltiger-backend-304653364245.asia-northeast3.run.app' // Production URL
-    : 'http://127.0.0.1:8000'; // Local Development URL
+const String kBaseApiUrl =
+    'https://cooltiger-backend-304653364245.asia-northeast3.run.app';
+// const String kBaseApiUrl = 'http://127.0.0.1:8000'; // Local Development URL
 
 /// Demo mode flag
 ///
