@@ -85,8 +85,9 @@ async def start_conversation(request: ConversationStartRequest):
         import base64
         audio_base64 = base64.b64encode(audio_bytes).decode('utf-8')
         tts_url = f"data:audio/mp3;base64,{audio_base64}"
-        logger.info("Converted TTS audio to base64 data URL")
-        
+        # logger.info("Converted TTS audio to base64 data URL")
+        logger.info("Greetings played")
+
         return ConversationStartResponse(
             success=True,
             call_id=call_id,
@@ -186,23 +187,18 @@ async def reply_to_conversation(
         append_turn(senior_id, call_id, "ai", ai_text)
         logger.info("Saved AI reply turn to Firestore")
         
-        # Synthesize speech audio with conversation context as prompt
-        # Build prompt from recent conversation for natural TTS
-        conversation_context = "\n".join([
-            f"{turn['speaker']}: {turn['text']}"
-            for turn in recent_turns[-3:] if turn  # Last 3 turns for context
-        ])
-        
-        audio_bytes = synthesize_speech(conversation_context)
-        logger.info(f"Synthesized speech audio: {len(audio_bytes)} bytes")
+        # Synthesize AI response to speech audio
+        res_audio_bytes = synthesize_speech(ai_text)
+        logger.info(f"Synthesized speech audio: {len(res_audio_bytes)} bytes")
         
         # Convert audio to base64 data URL for immediate playback
         # This eliminates need for cloud storage and reduces latency
         import base64
-        audio_base64 = base64.b64encode(audio_bytes).decode('utf-8')
+        audio_base64 = base64.b64encode(res_audio_bytes).decode('utf-8')
         tts_url = f"data:audio/mp3;base64,{audio_base64}"
-        logger.info("Converted TTS audio to base64 data URL")
-        
+        # logger.info("Converted TTS audio to base64 data URL")
+        logger.info("Conversion reply played")
+
         return ConversationReplyResponse(
             success=True,
             ai_text=ai_text,

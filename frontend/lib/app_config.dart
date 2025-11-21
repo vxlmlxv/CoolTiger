@@ -3,16 +3,29 @@
 /// Controls demo mode and other app-wide settings.
 library;
 
-/// Demo mode flag - when true, the app runs without backend/Firebase.
-///
-/// Set to `true` for local development and UI testing without backend.
-/// Set to `false` for production with real Firebase + FastAPI backend.
-const bool kDemoMode = true;
+import 'package:flutter/foundation.dart';
 
-/// Base URL for the FastAPI backend.
+/// Application configuration settings
+class AppConfig {
+  // Prevent instantiation
+  const AppConfig._();
+}
+
+/// Backend API URL
 ///
-const String kBaseApiUrl =
-    "https://cooltiger-backend-304653364245.asia-northeast3.run.app/";
+/// For Android Emulator: Use 'http://10.0.2.2:8000'
+/// For iOS Simulator: Use 'http://127.0.0.1:8000'
+/// For Web (Local): Use 'http://127.0.0.1:8000' or 'http://localhost:8000'
+/// For Production: Use your Cloud Run URL
+const String kBaseApiUrl = kReleaseMode
+    ? 'https://cooltiger-backend-304653364245.asia-northeast3.run.app' // Production URL
+    : 'http://127.0.0.1:8000'; // Local Development URL
+
+/// Demo mode flag
+///
+/// Set to true to use fake data and responses for UI testing
+/// Set to false to use actual backend API
+const bool kDemoMode = false; // <--- CHANGED TO FALSE
 
 /// Demo user data for testing without Firebase.
 class DemoUser {

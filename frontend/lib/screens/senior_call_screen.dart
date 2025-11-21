@@ -3,11 +3,14 @@ import 'package:dio/dio.dart';
 import 'package:record/record.dart';
 import 'package:just_audio/just_audio.dart';
 import 'dart:typed_data';
+import 'dart:convert';
 
 import '../app_config.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
 import 'dart:io' show File; // For non-web platforms
+import 'package:path_provider/path_provider.dart'; // For temp directory
+import 'package:universal_html/html.dart' as html show AudioElement;
 
 /// Model for conversation turns
 class ConversationTurn {
@@ -127,6 +130,7 @@ class _SeniorCallScreenState extends State<SeniorCallScreen> {
         // Auto-play initial greeting if TTS URL is available
         if (data['tts_url'] != null) {
           _playTts(data['tts_url']);
+          debugPrint('initial tts url played}');
         }
       }
     } on DioException catch (e) {
@@ -331,16 +335,44 @@ class _SeniorCallScreenState extends State<SeniorCallScreen> {
     }
 
     try {
-      // just_audio supports both HTTP URLs and base64 data URLs
-      // Base64 format: data:audio/mp3;base64,<base64_string>
-      await _audioPlayer.setUrl(url);
-      await _audioPlayer.play();
-      debugPrint(
-        'Playing TTS audio from ${url.length > 50 ? "base64 data" : url}',
-      );
+      // Handle base64 data URLs (format: data:audio/mp3;base64,<base64_string>)
+      if (url.startsWith('data:audio/')) {
+        debugPrint('Received base64 audio data (length: ${url.length})');
+
+        // Decode base64 string
+        final base64Data = url.split(',').last;
+        final audioBytes = base64Decode(base64Data);
+        debugPrint('Decoded audio bytes: ${audioBytes.length}');
+
+        // For web: Create a temporary audio element and play
+        if (kIsWeb) {
+          // Use the HTML audio element directly for web
+          // This is more reliable than just_audio for data URLs
+          final audioElement = html.AudioElement(url);
+          audioElement.play();
+          debugPrint('Playing TTS audio using HTML AudioElement on web');
+        } else {
+          // For mobile/desktop: decode base64 and save to temp file
+          final tempDir = await getTemporaryDirectory();
+          final tempFile = File(
+            '${tempDir.path}/tts_${DateTime.now().millisecondsSinceEpoch}.mp3',
+          );
+          await tempFile.writeAsBytes(audioBytes);
+          await _audioPlayer.setFilePath(tempFile.path);
+          await _audioPlayer.play();
+          debugPrint(
+            'Playing TTS audio from temp file (${audioBytes.length} bytes)',
+          );
+        }
+      } else {
+        // Regular HTTP/HTTPS URL
+        await _audioPlayer.setUrl(url);
+        await _audioPlayer.play();
+        debugPrint('Playing TTS audio from URL: $url');
+      }
     } catch (e) {
       debugPrint('Error playing TTS audio: $e');
-      // Don't show error to user for TTS playback issues
+      _showErrorSnackBar('오디오 재생 실패: ${e.toString()}');
     }
   }
 

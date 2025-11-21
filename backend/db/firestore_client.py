@@ -23,13 +23,21 @@ if not _app_initialized:
             initialize_app(cred, {
                 'projectId': settings.google_project_id,
             })
+
         else:
             # Cloud Run / ADC
             cred, project_id = google_auth_default()
             initialize_app(cred, {
                 'projectId': project_id,
             })
-db: firestore.Client = firestore.client()
+            # cred = credentials.ApplicationDefault()
+
+            # firebase_admin.initialize_app(cred)
+            
+
+
+db = firestore.client()
+
 
 def create_call_doc(senior_id: str) -> str:
     """
