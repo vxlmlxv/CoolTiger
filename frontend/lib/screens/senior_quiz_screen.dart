@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../widgets/senior_app_bar.dart';
+import '../widgets/bottom_action_button.dart';
 
 /// Model for quiz data
 class QuizData {
@@ -300,65 +302,75 @@ class _SeniorQuizScreenState extends State<SeniorQuizScreen> {
     );
   }
 
-  Color _getOptionColor(int index) {
-    if (_selectedIndex == index) {
-      if (_isCorrect) {
-        return Colors.green;
-      } else {
-        return Colors.red;
-      }
-    }
-    if (_disabledOptions.contains(index)) {
-      return Colors.grey;
-    }
-    return Colors.blue;
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: const SeniorAppBar(),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            children: [
-              // Quiz Card
-              Expanded(
+        child: Column(
+          children: [
+            // Quiz Card Section
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 26,
+                  vertical: 6,
+                ),
                 child: Card(
-                  elevation: 4,
+                  elevation: 0,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(12),
+                    side: BorderSide(
+                      color: const Color(0xFFCAC4D0), // M3 outline-variant
+                      width: 1,
+                    ),
                   ),
                   child: Padding(
-                    padding: const EdgeInsets.all(24.0),
+                    padding: const EdgeInsets.all(16),
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Header
+                        // Header with avatar and title
                         Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Text(
-                              'Cognitive Ability Quiz',
-                              style: TextStyle(
-                                fontSize: 22,
-                                fontWeight: FontWeight.bold,
+                            // Avatar
+                            Container(
+                              width: 40,
+                              height: 40,
+                              decoration: const BoxDecoration(
+                                color: Color(
+                                  0xFFEADDFF,
+                                ), // M3 primary-container
+                                shape: BoxShape.circle,
                               ),
                             ),
+                            const SizedBox(width: 16),
+                            const Expanded(
+                              child: Text(
+                                '인지능력퀴즈',
+                                style: TextStyle(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.w700,
+                                  height: 1.0,
+                                  letterSpacing: 0.15,
+                                ),
+                              ),
+                            ),
+                            // More options button
                             IconButton(
-                              icon: const Icon(Icons.more_vert, size: 28),
+                              icon: const Icon(Icons.more_vert),
                               onPressed: () {
                                 // TODO: Show menu (settings, help, etc.)
                               },
                             ),
                           ],
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 12),
 
                         // Image placeholder
                         if (_currentQuiz.imageUrl != null)
                           Container(
-                            height: 200,
+                            height: 188,
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(12),
                               color: Colors.grey[200],
@@ -372,15 +384,17 @@ class _SeniorQuizScreenState extends State<SeniorQuizScreen> {
                           )
                         else
                           _buildImagePlaceholder(),
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 16),
 
                         // Question section
                         Text(
-                          'Question ${_currentIndex + 1}',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.grey[600],
-                            fontWeight: FontWeight.w500,
+                          '문제 ${_currentIndex + 1}'.padLeft(4, '0'),
+                          style: const TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.w700,
+                            height: 1.0,
+                            letterSpacing: 0.5,
+                            color: Color(0xFF1D1B20), // M3 on-surface
                           ),
                         ),
                         const SizedBox(height: 8),
@@ -388,7 +402,10 @@ class _SeniorQuizScreenState extends State<SeniorQuizScreen> {
                           _currentQuiz.questionText,
                           style: const TextStyle(
                             fontSize: 24,
-                            fontWeight: FontWeight.bold,
+                            fontWeight: FontWeight.w400,
+                            height: 0.83,
+                            letterSpacing: 0.25,
+                            color: Color(0xFF49454F), // M3 on-surface-variant
                           ),
                         ),
                         const SizedBox(height: 16),
@@ -420,25 +437,32 @@ class _SeniorQuizScreenState extends State<SeniorQuizScreen> {
                           ),
                         const Spacer(),
 
-                        // Next Question button
-                        SizedBox(
-                          width: double.infinity,
+                        // Next Question button (aligned right)
+                        Align(
+                          alignment: Alignment.centerRight,
                           child: ElevatedButton(
                             onPressed: _isCorrect ? _nextQuestion : null,
                             style: ElevatedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              backgroundColor: Colors.purple,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 10,
+                              ),
+                              backgroundColor: const Color(
+                                0xFF6750A4,
+                              ), // M3 primary
                               foregroundColor: Colors.white,
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(30),
+                                borderRadius: BorderRadius.circular(100),
                               ),
                               disabledBackgroundColor: Colors.grey[300],
                             ),
                             child: Text(
-                              _hasNextQuestion ? 'Next Question' : 'Finish',
+                              _hasNextQuestion ? '다음 문제' : '완료',
                               style: const TextStyle(
                                 fontSize: 20,
-                                fontWeight: FontWeight.bold,
+                                fontWeight: FontWeight.w500,
+                                height: 1.0,
+                                letterSpacing: 0.1,
                               ),
                             ),
                           ),
@@ -448,82 +472,56 @@ class _SeniorQuizScreenState extends State<SeniorQuizScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
+            ),
 
-              // Answer Grid (2x2)
-              GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 12,
-                  mainAxisSpacing: 12,
-                  childAspectRatio: 2.5,
+            // Answer Grid (2x2)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 3),
+              child: Wrap(
+                spacing: 14,
+                runSpacing: 14,
+                alignment: WrapAlignment.center,
+                children: List.generate(
+                  _currentQuiz.options.length,
+                  (index) => _buildOptionButton(index),
                 ),
-                itemCount: _currentQuiz.options.length,
-                itemBuilder: (context, index) {
-                  return _buildOptionButton(index);
-                },
               ),
-              const SizedBox(height: 16),
+            ),
+            const SizedBox(height: 3),
 
-              // Bottom Action Bar
-              Row(
+            // Bottom Action Bar
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 27, vertical: 15),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Expanded(
-                    child: ElevatedButton.icon(
+                    child: BottomActionButton(
+                      icon: Icons.close,
+                      label: '종료',
                       onPressed: _showExitDialog,
-                      icon: const Icon(Icons.exit_to_app, size: 24),
-                      label: const Text('End', style: TextStyle(fontSize: 18)),
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        backgroundColor: Colors.orange,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 28),
                   Expanded(
-                    child: ElevatedButton.icon(
+                    child: BottomActionButton(
+                      icon: Icons.search,
+                      label: '힌트',
                       onPressed: _showHint ? null : _showHintDialog,
-                      icon: const Icon(Icons.lightbulb_outline, size: 24),
-                      label: const Text('Hint', style: TextStyle(fontSize: 18)),
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        backgroundColor: Colors.orange,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 28),
                   Expanded(
-                    child: ElevatedButton.icon(
+                    child: BottomActionButton(
+                      icon: Icons.mic,
+                      label: '음성',
                       onPressed: _showVoiceDialog,
-                      icon: const Icon(Icons.mic, size: 24),
-                      label: const Text(
-                        'Voice',
-                        style: TextStyle(fontSize: 18),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        backgroundColor: Colors.orange,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
                     ),
                   ),
                 ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -531,10 +529,10 @@ class _SeniorQuizScreenState extends State<SeniorQuizScreen> {
 
   Widget _buildImagePlaceholder() {
     return Container(
-      height: 200,
+      height: 188,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
-        color: Colors.grey[200],
+        color: const Color(0xFFECE6F0), // M3 placeholder background
       ),
       child: Center(
         child: Icon(Icons.image, size: 64, color: Colors.grey[400]),
@@ -543,27 +541,52 @@ class _SeniorQuizScreenState extends State<SeniorQuizScreen> {
   }
 
   Widget _buildOptionButton(int index) {
-    final color = _getOptionColor(index);
     final isDisabled = _disabledOptions.contains(index);
+
+    Color backgroundColor;
+    Color textColor;
+
+    if (_selectedIndex == index) {
+      if (_isCorrect) {
+        backgroundColor = Colors.green;
+        textColor = Colors.white;
+      } else {
+        backgroundColor = Colors.red;
+        textColor = Colors.white;
+      }
+    } else if (isDisabled) {
+      backgroundColor = Colors.grey[300]!;
+      textColor = Colors.grey[600]!;
+    } else {
+      backgroundColor = const Color(0xFFE8DEF8); // M3 secondary-container
+      textColor = const Color(0xFF4A4459); // M3 on-secondary-container
+    }
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
+      width: 173,
+      height: 91,
       child: ElevatedButton(
         onPressed: isDisabled ? null : () => _selectOption(index),
         style: ElevatedButton.styleFrom(
-          backgroundColor: color,
-          foregroundColor: Colors.white,
+          backgroundColor: backgroundColor,
+          foregroundColor: textColor,
           disabledBackgroundColor: Colors.grey[300],
-          disabledForegroundColor: Colors.grey[500],
-          padding: const EdgeInsets.all(16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
+          disabledForegroundColor: Colors.grey[600],
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          elevation: 0,
         ),
         child: Text(
           _currentQuiz.options[index],
-          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          style: const TextStyle(
+            fontSize: 36,
+            fontWeight: FontWeight.w400,
+            height: 1.11,
+          ),
           textAlign: TextAlign.center,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
         ),
       ),
     );

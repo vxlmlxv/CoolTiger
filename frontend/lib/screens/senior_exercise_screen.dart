@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
+import 'package:youtube_player_flutter/youtube_player_flutter.dart';
+
+import '../widgets/bottom_action_button.dart';
+import '../widgets/senior_app_bar.dart';
 
 /// Exercise guidance screen for seniors with video playback.
 ///
@@ -8,9 +12,13 @@ import 'package:video_player/video_player.dart';
 class SeniorExerciseScreen extends StatefulWidget {
   // TODO: Replace with actual exercise video URL from backend
   final String videoUrl;
+  final bool useYoutubePlayer = false;
 
   const SeniorExerciseScreen({
     super.key,
+
+    // this.videoUrl =
+    //   'https://youtube.com/shorts/elABjEdqRz4?si=PmSxwwVhHier045J',
     this.videoUrl =
         'https://flutter.github.io/assets-for-api-docs/assets/videos/bee.mp4',
   });
@@ -20,10 +28,13 @@ class SeniorExerciseScreen extends StatefulWidget {
 }
 
 class _SeniorExerciseScreenState extends State<SeniorExerciseScreen> {
-  late VideoPlayerController _controller;
+  VideoPlayerController? _controller;
+  YoutubePlayerController? _ytController;
   bool _isInitialized = false;
   bool _hasError = false;
   String? _errorMessage;
+  bool get _isUsingYoutube => widget.useYoutubePlayer;
+  VideoPlayerController get _videoController => _controller!;
 
   @override
   void initState() {
@@ -33,34 +44,53 @@ class _SeniorExerciseScreenState extends State<SeniorExerciseScreen> {
 
   Future<void> _initializeVideo() async {
     try {
-      // Initialize video player controller with network URL
-      // TODO: For production, consider using AssetImage for local videos
-      // or implement video caching for better performance
-      _controller = VideoPlayerController.networkUrl(
-        Uri.parse(widget.videoUrl),
-      );
-
-      await _controller.initialize();
-
-      setState(() {
-        _isInitialized = true;
-      });
-
-      // Optional: Auto-play when initialized
-      // Uncomment the line below to enable auto-play
-      // _controller.play();
-
-      // Listen to playback completion
-      _controller.addListener(() {
-        if (_controller.value.position >= _controller.value.duration) {
-          // Video completed
-          if (mounted) {
-            setState(() {
-              // Reset to beginning
-            });
-          }
+      if (_isUsingYoutube) {
+        final videoId = YoutubePlayer.convertUrlToId(widget.videoUrl);
+        if (videoId == null) {
+          throw Exception('유효한 유튜브 링크가 아닙니다.');
         }
-      });
+        _ytController =
+            YoutubePlayerController(
+              initialVideoId: videoId,
+              flags: const YoutubePlayerFlags(
+                autoPlay: false,
+                hideControls: true,
+                controlsVisibleAtStart: false,
+                mute: false,
+              ),
+            )..addListener(() {
+              if (!_isInitialized && _ytController!.value.isReady && mounted) {
+                setState(() {
+                  _isInitialized = true;
+                });
+              }
+            });
+      } else {
+        // Initialize video player controller with network URL
+        // TODO: For production, consider using AssetImage for local videos
+        // or implement video caching for better performance
+        _controller = VideoPlayerController.networkUrl(
+          Uri.parse(widget.videoUrl),
+        );
+
+        await _videoController.initialize();
+
+        setState(() {
+          _isInitialized = true;
+        });
+
+        // Listen to playback completion
+        _videoController.addListener(() {
+          if (_videoController.value.position >=
+              _videoController.value.duration) {
+            if (mounted) {
+              setState(() {
+                // Reset to beginning
+              });
+            }
+          }
+        });
+      }
     } catch (e) {
       setState(() {
         _hasError = true;
@@ -71,40 +101,63 @@ class _SeniorExerciseScreenState extends State<SeniorExerciseScreen> {
 
   @override
   void dispose() {
-    _controller.dispose();
+    _controller?.dispose();
+    _ytController?.dispose();
     super.dispose();
   }
 
   void _togglePlayPause() {
     setState(() {
-      if (_controller.value.isPlaying) {
-        _controller.pause();
+      if (_isUsingYoutube) {
+        if (_ytController?.value.isPlaying ?? false) {
+          _ytController?.pause();
+        } else {
+          _ytController?.play();
+        }
       } else {
-        _controller.play();
+        if (_videoController.value.isPlaying) {
+          _videoController.pause();
+        } else {
+          _videoController.play();
+        }
       }
     });
   }
 
   void _rewind10Seconds() {
-    final currentPosition = _controller.value.position;
+    final currentPosition = _isUsingYoutube
+        ? _ytController!.value.position
+        : _videoController.value.position;
     final newPosition = currentPosition - const Duration(seconds: 10);
 
     if (newPosition.isNegative) {
-      _controller.seekTo(Duration.zero);
+      _isUsingYoutube
+          ? _ytController?.seekTo(Duration.zero)
+          : _videoController.seekTo(Duration.zero);
     } else {
-      _controller.seekTo(newPosition);
+      _isUsingYoutube
+          ? _ytController?.seekTo(newPosition)
+          : _videoController.seekTo(newPosition);
     }
   }
 
   void _forward10Seconds() {
-    final currentPosition = _controller.value.position;
-    final duration = _controller.value.duration;
+    final currentPosition = _isUsingYoutube
+        ? _ytController!.value.position
+        : _videoController.value.position;
+    final duration = _isUsingYoutube
+        ? _ytController!.metadata.duration
+        : _videoController.value.duration;
     final newPosition = currentPosition + const Duration(seconds: 10);
 
     if (newPosition >= duration) {
-      _controller.seekTo(duration);
+      _isUsingYoutube
+          ? _ytController?.seekTo(duration)
+          : _videoController.seekTo(duration);
     } else {
-      _controller.seekTo(newPosition);
+      _isUsingYoutube
+          ? _ytController?.seekTo(newPosition)
+          : _videoController.seekTo(newPosition);
     }
   }
 
@@ -161,59 +214,65 @@ class _SeniorExerciseScreenState extends State<SeniorExerciseScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: const Color(0xFFF5F3F7), // Light purple background
+      appBar: const SeniorAppBar(),
       body: SafeArea(
-        child: _hasError
-            ? _buildErrorView()
-            : !_isInitialized
-            ? _buildLoadingView()
-            : _buildVideoView(),
-      ),
-    );
-  }
-
-  Widget _buildErrorView() {
-    return Center(
-      child: Container(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.error_outline, size: 80, color: Colors.red),
-            const SizedBox(height: 24),
-            Text(
-              _errorMessage ?? '영상을 불러올 수 없습니다',
-              style: const TextStyle(fontSize: 20, color: Colors.white),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 32),
-            ElevatedButton.icon(
-              onPressed: () => Navigator.of(context).pop(),
-              icon: const Icon(Icons.arrow_back, size: 24),
-              label: const Text('돌아가기', style: TextStyle(fontSize: 20)),
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 32,
-                  vertical: 16,
-                ),
-              ),
-            ),
-          ],
+        child: SingleChildScrollView(
+          child: _hasError
+              ? _buildErrorView()
+              : !_isInitialized
+              ? _buildLoadingView()
+              : _buildVideoView(),
         ),
       ),
     );
   }
 
-  Widget _buildLoadingView() {
-    return const Center(
+  Widget _buildErrorView() {
+    return Container(
+      padding: const EdgeInsets.all(32),
+      height: MediaQuery.of(context).size.height - 200,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          CircularProgressIndicator(color: Colors.white, strokeWidth: 4),
+          const Icon(Icons.error_outline, size: 80, color: Colors.red),
+          const SizedBox(height: 24),
+          Text(
+            _errorMessage ?? '영상을 불러올 수 없습니다',
+            style: const TextStyle(fontSize: 20, color: Color(0xFF1D1B20)),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 32),
+          ElevatedButton.icon(
+            onPressed: () => Navigator.of(context).pop(),
+            icon: const Icon(Icons.arrow_back, size: 24),
+            label: const Text('돌아가기', style: TextStyle(fontSize: 20)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF6750A4),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLoadingView() {
+    return Container(
+      padding: const EdgeInsets.all(32),
+      height: MediaQuery.of(context).size.height - 200,
+      child: const Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          CircularProgressIndicator(color: Color(0xFF6750A4), strokeWidth: 4),
           SizedBox(height: 24),
           Text(
             '영상을 불러오는 중...',
-            style: TextStyle(fontSize: 20, color: Colors.white),
+            style: TextStyle(fontSize: 20, color: Color(0xFF1D1B20)),
           ),
         ],
       ),
@@ -224,33 +283,67 @@ class _SeniorExerciseScreenState extends State<SeniorExerciseScreen> {
     return Column(
       children: [
         // Video Player Area
-        Expanded(
-          child: Center(
-            child: AspectRatio(
-              aspectRatio: _controller.value.aspectRatio,
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  VideoPlayer(_controller),
-
-                  // Play overlay when paused
-                  if (!_controller.value.isPlaying)
-                    GestureDetector(
-                      onTap: _togglePlayPause,
-                      child: Container(
-                        color: Colors.black.withOpacity(0.3),
-                        child: const Center(
-                          child: Icon(
-                            Icons.play_circle_outline,
-                            size: 100,
-                            color: Colors.white,
+        Center(
+          child: AspectRatio(
+            aspectRatio: _isUsingYoutube
+                ? 16 / 9
+                : (_videoController.value.isInitialized
+                      ? _videoController.value.aspectRatio
+                      : 16 / 9),
+            child: _isUsingYoutube
+                ? YoutubePlayerBuilder(
+                    player: YoutubePlayer(
+                      controller: _ytController!,
+                      showVideoProgressIndicator: false,
+                      progressIndicatorColor: Colors.purple,
+                      topActions: const [],
+                      bottomActions: const [],
+                    ),
+                    builder: (context, player) {
+                      final isPlaying = _ytController?.value.isPlaying ?? false;
+                      return Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          player,
+                          if (!isPlaying)
+                            GestureDetector(
+                              onTap: _togglePlayPause,
+                              child: Container(
+                                color: Colors.black.withOpacity(0.3),
+                                child: const Center(
+                                  child: Icon(
+                                    Icons.play_circle_outline,
+                                    size: 100,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      );
+                    },
+                  )
+                : Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      VideoPlayer(_videoController),
+                      // Play overlay when paused
+                      if (!_videoController.value.isPlaying)
+                        GestureDetector(
+                          onTap: _togglePlayPause,
+                          child: Container(
+                            color: Colors.black.withOpacity(0.3),
+                            child: const Center(
+                              child: Icon(
+                                Icons.play_circle_outline,
+                                size: 100,
+                                color: Colors.white,
+                              ),
+                            ),
                           ),
                         ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
+                    ],
+                  ),
           ),
         ),
 
@@ -264,10 +357,15 @@ class _SeniorExerciseScreenState extends State<SeniorExerciseScreen> {
               Row(
                 children: [
                   ValueListenableBuilder(
-                    valueListenable: _controller,
-                    builder: (context, VideoPlayerValue value, child) {
+                    valueListenable: _isUsingYoutube
+                        ? _ytController!
+                        : _videoController,
+                    builder: (context, dynamic value, child) {
+                      final position = _isUsingYoutube
+                          ? value.position as Duration
+                          : (value as VideoPlayerValue).position;
                       return Text(
-                        _formatDuration(value.position),
+                        _formatDuration(position),
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 16,
@@ -278,11 +376,18 @@ class _SeniorExerciseScreenState extends State<SeniorExerciseScreen> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: ValueListenableBuilder(
-                      valueListenable: _controller,
-                      builder: (context, VideoPlayerValue value, child) {
-                        final progress = value.duration.inMilliseconds > 0
-                            ? value.position.inMilliseconds /
-                                  value.duration.inMilliseconds
+                      valueListenable: _isUsingYoutube
+                          ? _ytController!
+                          : _videoController,
+                      builder: (context, dynamic value, child) {
+                        final position = _isUsingYoutube
+                            ? value.position as Duration
+                            : (value as VideoPlayerValue).position;
+                        final duration = _isUsingYoutube
+                            ? value.metaData.duration as Duration
+                            : (value as VideoPlayerValue).duration;
+                        final progress = duration.inMilliseconds > 0
+                            ? position.inMilliseconds / duration.inMilliseconds
                             : 0.0;
 
                         return ClipRRect(
@@ -301,10 +406,15 @@ class _SeniorExerciseScreenState extends State<SeniorExerciseScreen> {
                   ),
                   const SizedBox(width: 8),
                   ValueListenableBuilder(
-                    valueListenable: _controller,
-                    builder: (context, VideoPlayerValue value, child) {
+                    valueListenable: _isUsingYoutube
+                        ? _ytController!
+                        : _videoController,
+                    builder: (context, dynamic value, child) {
+                      final duration = _isUsingYoutube
+                          ? value.metaData.duration as Duration
+                          : (value as VideoPlayerValue).duration;
                       return Text(
-                        _formatDuration(value.duration),
+                        _formatDuration(duration),
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 16,
@@ -314,7 +424,7 @@ class _SeniorExerciseScreenState extends State<SeniorExerciseScreen> {
                   ),
                 ],
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 30),
 
               // Playback Control Buttons
               Row(
@@ -353,12 +463,17 @@ class _SeniorExerciseScreenState extends State<SeniorExerciseScreen> {
                       color: Colors.pink,
                     ),
                     child: ValueListenableBuilder(
-                      valueListenable: _controller,
-                      builder: (context, VideoPlayerValue value, child) {
+                      valueListenable: _isUsingYoutube
+                          ? _ytController!
+                          : _videoController,
+                      builder: (context, dynamic value, child) {
+                        final isPlaying = _isUsingYoutube
+                            ? (value as YoutubePlayerValue).isPlaying
+                            : (value as VideoPlayerValue).isPlaying;
                         return IconButton(
                           onPressed: _togglePlayPause,
                           icon: Icon(
-                            value.isPlaying ? Icons.pause : Icons.play_arrow,
+                            isPlaying ? Icons.pause : Icons.play_arrow,
                             size: 48,
                             color: Colors.white,
                           ),
@@ -392,43 +507,25 @@ class _SeniorExerciseScreenState extends State<SeniorExerciseScreen> {
                   ),
                 ],
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
 
-              // System Action Buttons
+              // Bottom Action Buttons (종료, 음성)
               Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // Exit button
                   Expanded(
-                    child: ElevatedButton.icon(
+                    child: BottomActionButton(
+                      icon: Icons.close,
+                      label: '종료',
                       onPressed: _showExitDialog,
-                      icon: const Icon(Icons.close, size: 28),
-                      label: const Text('종료', style: TextStyle(fontSize: 20)),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.orange,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 20),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
                     ),
                   ),
-                  const SizedBox(width: 16),
-
-                  // Voice button
+                  const SizedBox(width: 28),
                   Expanded(
-                    child: ElevatedButton.icon(
+                    child: BottomActionButton(
+                      icon: Icons.mic,
+                      label: '음성',
                       onPressed: _showVoiceDialog,
-                      icon: const Icon(Icons.mic, size: 28),
-                      label: const Text('음성', style: TextStyle(fontSize: 20)),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.orange,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 20),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
                     ),
                   ),
                 ],

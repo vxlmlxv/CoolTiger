@@ -1,19 +1,23 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 
 import '../app_config.dart';
+import '../widgets/senior_app_bar.dart';
+import '../widgets/senior_bottom_nav.dart';
+import '../widgets/service_card.dart';
+import '../widgets/floating_call_button.dart';
 import 'senior_call_screen.dart';
 import 'senior_quiz_screen.dart';
 import 'senior_exercise_screen.dart';
 
-/// Home screen for senior users with tab-based navigation.
+/// Home screen for senior users with card-based navigation.
 ///
-/// Provides easy access to three main features:
+/// Provides easy access to four main features:
 /// - AI companion calls (효심이 상담)
 /// - Cognitive quizzes (인지능력 퀴즈)
 /// - Exercise guidance (운동 길잡이)
+/// - Medication guidance (복약 지도)
 ///
-/// Includes a quick-start button for immediate access to AI calls.
+/// Features a scrollable list of service cards and bottom navigation.
 class SeniorHomeScreen extends StatefulWidget {
   const SeniorHomeScreen({super.key});
 
@@ -21,172 +25,130 @@ class SeniorHomeScreen extends StatefulWidget {
   State<SeniorHomeScreen> createState() => _SeniorHomeScreenState();
 }
 
-class _SeniorHomeScreenState extends State<SeniorHomeScreen>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+class _SeniorHomeScreenState extends State<SeniorHomeScreen> {
+  int _currentNavIndex = 0;
 
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 3, vsync: this);
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
-  }
-
-  void _navigateToCallTab() {
+  void _onNavItemTapped(int index) {
     setState(() {
-      _tabController.animateTo(0);
+      _currentNavIndex = index;
     });
+
+    // Navigate to different screens based on index
+    switch (index) {
+      case 0:
+        // Already on home, do nothing
+        break;
+      case 1:
+        // TODO: Navigate to Goals screen
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('목표 화면 준비 중입니다')));
+        break;
+      case 2:
+        // TODO: Navigate to My Info screen
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('내정보 화면 준비 중입니다')));
+        break;
+    }
   }
 
-  Future<void> _handleLogout() async {
-    final shouldLogout = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('로그아웃', style: TextStyle(fontSize: 20)),
-        content: const Text('로그아웃 하시겠습니까?', style: TextStyle(fontSize: 16)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('취소', style: TextStyle(fontSize: 16)),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('로그아웃', style: TextStyle(fontSize: 16)),
-          ),
-        ],
+  void _navigateToCallScreen() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => SeniorCallScreen(
+          seniorId: kDemoMode ? DemoUser.senior.uid : 'TODO-real-uid',
+        ),
       ),
     );
+  }
 
-    if (shouldLogout == true) {
-      if (!kDemoMode) {
-        try {
-          await FirebaseAuth.instance.signOut();
-        } catch (e) {
-          if (mounted) {
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(SnackBar(content: Text('로그아웃 실패: $e')));
-            return;
-          }
-        }
-      }
+  void _navigateToQuizScreen() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const SeniorQuizScreen()),
+    );
+  }
 
-      if (mounted) {
-        Navigator.of(
-          context,
-        ).pushReplacementNamed(kDemoMode ? '/demo' : '/login');
-      }
-    }
+  void _navigateToExerciseScreen() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const SeniorExerciseScreen()),
+    );
+  }
+
+  void _showMedicationComingSoon() {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('복약 지도 기능 준비 중입니다')));
+    debugPrint('TODO: Implement medication guidance feature');
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          '효심이 홈',
-          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.person, size: 28),
-            onPressed: () {
-              // TODO: Navigate to profile/settings screen
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(const SnackBar(content: Text('프로필 화면 준비 중입니다')));
-            },
-            tooltip: '프로필',
-          ),
-          IconButton(
-            icon: const Icon(Icons.logout, size: 28),
-            onPressed: _handleLogout,
-            tooltip: '로그아웃',
-          ),
-          const SizedBox(width: 8),
-        ],
-        bottom: TabBar(
-          controller: _tabController,
-          indicatorWeight: 4,
-          labelStyle: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
-          unselectedLabelStyle: const TextStyle(fontSize: 16),
-          tabs: const [
-            Tab(icon: Icon(Icons.phone, size: 28), text: '효심이 상담'),
-            Tab(icon: Icon(Icons.quiz, size: 28), text: '인지능력 퀴즈'),
-            Tab(icon: Icon(Icons.fitness_center, size: 28), text: '운동 길잡이'),
-          ],
-        ),
-      ),
+      appBar: const SeniorAppBar(),
       body: Column(
         children: [
-          // Tab content
+          // Scrollable content area
           Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                // In demo mode, use demo senior ID
-                SeniorCallScreen(
-                  seniorId: kDemoMode ? DemoUser.senior.uid : 'TODO-real-uid',
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 34,
                 ),
-                const SeniorQuizScreen(),
-                const SeniorExerciseScreen(),
-              ],
-            ),
-          ),
-
-          // Quick-start button area
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surface,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 4,
-                  offset: const Offset(0, -2),
-                ),
-              ],
-            ),
-            child: SafeArea(
-              top: false,
-              child: ElevatedButton(
-                onPressed: _navigateToCallTab,
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 20),
-                  backgroundColor: Theme.of(context).colorScheme.primary,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: const [
-                    Icon(Icons.phone_in_talk, size: 32),
-                    SizedBox(width: 12),
-                    Text(
-                      '효심이 상담 바로 시작하기',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
+                child: Column(
+                  children: [
+                    // AI 효심이 상담 card
+                    ServiceCard(
+                      title: 'AI 효심이 상담',
+                      subtitle: '무엇이든 편하게 물어보세요',
+                      buttonText: '시작하기',
+                      onPressed: _navigateToCallScreen,
                     ),
+                    const SizedBox(height: 27),
+
+                    // 인지능력 퀴즈 card
+                    ServiceCard(
+                      title: '인지능력 퀴즈',
+                      subtitle: '꾸준히 하면 기억력에 도움이 됩니다',
+                      buttonText: '시작하기',
+                      onPressed: _navigateToQuizScreen,
+                    ),
+                    const SizedBox(height: 27),
+
+                    // 하루 운동 길잡이 card
+                    ServiceCard(
+                      title: '하루 운동 길잡이',
+                      subtitle: '쉬운 동작으로 건강을 지켜요',
+                      buttonText: '시작하기',
+                      onPressed: _navigateToExerciseScreen,
+                    ),
+                    const SizedBox(height: 27),
+
+                    // 복약 지도 card
+                    ServiceCard(
+                      title: '복약 지도',
+                      subtitle: '약 드실 시간을 잊지 않게 챙겨드려요',
+                      buttonText: '시작하기',
+                      onPressed: _showMedicationComingSoon,
+                    ),
+                    const SizedBox(height: 80), // Space for floating button
                   ],
                 ),
               ),
             ),
           ),
+
+          // Floating call button
+          FloatingCallButton(onPressed: _navigateToCallScreen),
         ],
+      ),
+      bottomNavigationBar: SeniorBottomNav(
+        currentIndex: _currentNavIndex,
+        onTap: _onNavItemTapped,
       ),
     );
   }

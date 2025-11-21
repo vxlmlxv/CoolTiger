@@ -10,6 +10,7 @@ import 'screens/role_router.dart';
 import 'screens/senior_home_screen.dart';
 import 'screens/guardian_home_screen.dart';
 import 'screens/demo_landing_screen.dart';
+import 'screens/guardian_reports_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -58,6 +59,7 @@ class MyApp extends StatelessWidget {
         '/role-router': (context) => const RoleRouter(),
         '/senior-home': (context) => const SeniorHomeScreen(),
         '/guardian-home': (context) => const GuardianHomeScreen(),
+        '/guardian-reports': (context) => const GuardianReportsScreen(),
         '/demo': (context) => const DemoLandingScreen(),
       },
     );

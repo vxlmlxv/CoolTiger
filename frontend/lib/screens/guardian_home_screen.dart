@@ -1,426 +1,463 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 
-import '../app_config.dart';
+import '../widgets/guardian_bottom_nav.dart';
 
-/// Home screen for guardian (caregiver) users.
+/// Guardian (보호자) Home Screen - Dashboard for family members/protectors
 ///
-/// Displays monitoring dashboard with senior activity reports,
-/// call history, quiz results, and health alerts.
+/// Displays:
+/// - Purple gradient header with greeting and days together
+/// - Today's scheduled activities list
+/// - Action button to view life reports
+/// - Bottom navigation bar
 class GuardianHomeScreen extends StatefulWidget {
-  const GuardianHomeScreen({super.key});
+  final String guardianName;
+  final int daysWithHyosim;
+
+  const GuardianHomeScreen({
+    super.key,
+    this.guardianName = '홍길동',
+    this.daysWithHyosim = 42,
+  });
 
   @override
   State<GuardianHomeScreen> createState() => _GuardianHomeScreenState();
 }
 
 class _GuardianHomeScreenState extends State<GuardianHomeScreen> {
-  // DEMO MODE: Use dummy reports
-  final List<SeniorReport> _demoReports = [
-    SeniorReport(
-      date: DateTime.now().subtract(const Duration(hours: 2)),
-      seniorName: '김효심',
-      mood: 'good',
-      summary: '산책 다녀오셨다고 말씀하셨어요. 기분이 좋아 보이셨습니다.',
-      callDuration: const Duration(minutes: 8),
-    ),
-    SeniorReport(
-      date: DateTime.now().subtract(const Duration(days: 1)),
-      seniorName: '김효심',
-      mood: 'normal',
-      summary: '퀴즈 3문제 풀이 완료. 2문제 정답.',
-      callDuration: const Duration(minutes: 5),
-    ),
-    SeniorReport(
-      date: DateTime.now().subtract(const Duration(days: 2)),
-      seniorName: '김효심',
-      mood: 'caution',
-      summary: '오늘은 조금 피곤하다고 하셨어요. 걱정되는 부분이 있으시면 연락 주세요.',
-      callDuration: const Duration(minutes: 12),
-    ),
-  ];
+  int _currentNavIndex = 0;
 
-  Future<void> _handleLogout() async {
-    final shouldLogout = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('로그아웃'),
-        content: const Text('로그아웃 하시겠습니까?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('취소'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('로그아웃'),
-          ),
-        ],
-      ),
-    );
+  void _onNavItemTapped(int index) {
+    setState(() {
+      _currentNavIndex = index;
+    });
 
-    if (shouldLogout == true) {
-      if (!kDemoMode) {
-        try {
-          await FirebaseAuth.instance.signOut();
-        } catch (e) {
-          if (mounted) {
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(SnackBar(content: Text('로그아웃 실패: $e')));
-            return;
-          }
-        }
-      }
-
-      if (mounted) {
-        Navigator.of(
-          context,
-        ).pushReplacementNamed(kDemoMode ? '/demo' : '/login');
-      }
+    // Navigate to different screens based on index
+    switch (index) {
+      case 0:
+        // Already on home, do nothing
+        break;
+      case 1:
+        // TODO: Navigate to Reports screen
+        Navigator.of(context).pushReplacementNamed('/guardian-reports');
+        break;
+      case 2:
+        // TODO: Navigate to Settings screen
+        _showComingSoon('설정');
+        break;
+      case 3:
+        // TODO: Navigate to User screen
+        _showComingSoon('사용자');
+        break;
     }
+  }
+
+  void _showComingSoon(String feature) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('$feature 화면 준비 중입니다')));
+  }
+
+  void _navigateToAllActivities() {
+    _showComingSoon('전체 활동');
+  }
+
+  void _navigateToReports() {
+    Navigator.of(context).pushReplacementNamed('/guardian-reports');
+  }
+
+  void _editSchedule(String activityTitle) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('$activityTitle 일정 수정')));
   }
 
   @override
   Widget build(BuildContext context) {
+    // Use LayoutBuilder to keep content responsive on smaller devices.
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          '보호자 홈',
-          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications, size: 28),
-            onPressed: () {
-              // TODO: Show notifications
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(const SnackBar(content: Text('알림 기능 준비 중입니다')));
-            },
-            tooltip: '알림',
-          ),
-          IconButton(
-            icon: const Icon(Icons.settings, size: 28),
-            onPressed: () {
-              // TODO: Navigate to settings
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(const SnackBar(content: Text('설정 기능 준비 중입니다')));
-            },
-            tooltip: '설정',
-          ),
-          IconButton(
-            icon: const Icon(Icons.logout, size: 28),
-            onPressed: _handleLogout,
-            tooltip: '로그아웃',
-          ),
-          const SizedBox(width: 8),
-        ],
+        title: const Text('보호자 홈'),
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+        elevation: 0,
       ),
-      body: RefreshIndicator(
-        onRefresh: () async {
-          // DEMO MODE: Simulate refresh
-          await Future.delayed(const Duration(seconds: 1));
-          if (mounted) {
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(const SnackBar(content: Text('새로고침 완료')));
-          }
+      backgroundColor: Colors.white,
+      bottomNavigationBar: GuardianBottomNav(
+        currentIndex: _currentNavIndex,
+        onTap: _onNavItemTapped,
+      ),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          return SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 520),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // Guardian Profile Header (Purple gradient banner)
+                      GuardianProfileHeader(
+                        guardianName: widget.guardianName,
+                        daysWithHyosim: widget.daysWithHyosim,
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      // Activity List with Header
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          // Activity Header
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Expanded(
+                                child: Text(
+                                  '오늘 예정된 활동',
+                                  style: TextStyle(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.w500,
+                                    height: 1.4,
+                                    color: Colors.black,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              // "전체 보기" button
+                              GestureDetector(
+                                onTap: _navigateToAllActivities,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 6,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFF8D28), // Orange
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: const Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        '전체 보기',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w500,
+                                          letterSpacing: 0.5,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                      SizedBox(width: 4),
+                                      Icon(
+                                        Icons.chevron_right,
+                                        size: 20,
+                                        color: Colors.white,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+
+                          const SizedBox(height: 9),
+
+                          // Activity List
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 13,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              border: Border.all(
+                                color: const Color(0xFFF2F2F7),
+                              ),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Column(
+                              children: [
+                                DailyActivityItem(
+                                  title: 'AI 인지 퀴즈',
+                                  subtitle: '구체적 내용',
+                                  onEditPressed: () =>
+                                      _editSchedule('AI 인지 퀴즈'),
+                                ),
+                                DailyActivityItem(
+                                  title: 'AI 트레이닝',
+                                  subtitle: '구체적 내용',
+                                  onEditPressed: () => _editSchedule('AI 트레이닝'),
+                                ),
+                                DailyActivityItem(
+                                  title: 'Ai 트레이너 효빵이',
+                                  subtitle: '구체적 내용',
+                                  onEditPressed: () =>
+                                      _editSchedule('Ai 트레이너 효빵이'),
+                                ),
+                                DailyActivityItem(
+                                  title: '복약지도',
+                                  subtitle: '구체적 내용',
+                                  onEditPressed: () => _editSchedule('복약지도'),
+                                ),
+                                DailyActivityItem(
+                                  title: '복약지도',
+                                  subtitle: '구체적 내용',
+                                  onEditPressed: () => _editSchedule('복약지도'),
+                                  isLast: true,
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          const SizedBox(height: 40),
+
+                          // Bottom Action Button - "효심이와 생활 보고서 보러 가기"
+                          GestureDetector(
+                            onTap: _navigateToReports,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 10,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF2F2F7),
+                                borderRadius: BorderRadius.circular(100),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.25),
+                                    offset: const Offset(2, 2),
+                                    blurRadius: 2,
+                                  ),
+                                ],
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Flexible(
+                                    child: Text(
+                                      '효심이와 생활 보고서 보러 가기',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w500,
+                                        letterSpacing: 0.1,
+                                        color: Color(0xFF49454F),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Icon(
+                                    Icons.arrow_forward,
+                                    size: 30,
+                                    color: Colors.black.withOpacity(0.7),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+
+                          const SizedBox(height: 40),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
         },
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            // Summary cards
-            Row(
-              children: [
-                Expanded(
-                  child: _buildSummaryCard(
-                    icon: Icons.phone_in_talk,
-                    label: '오늘 통화',
-                    value: '1회',
-                    color: Colors.blue,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: _buildSummaryCard(
-                    icon: Icons.quiz,
-                    label: '이번 주 퀴즈',
-                    value: '5회',
-                    color: Colors.green,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildSummaryCard(
-                    icon: Icons.fitness_center,
-                    label: '이번 주 운동',
-                    value: '3회',
-                    color: Colors.orange,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: _buildSummaryCard(
-                    icon: Icons.favorite,
-                    label: '전체 기분',
-                    value: '좋음',
-                    color: Colors.pink,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 32),
-
-            // Reports section
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  '최근 활동',
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                ),
-                TextButton.icon(
-                  onPressed: () {
-                    // TODO: Navigate to all reports
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('전체 보기 기능 준비 중입니다')),
-                    );
-                  },
-                  icon: const Icon(Icons.arrow_forward),
-                  label: const Text('전체 보기'),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-
-            // Report list
-            ..._demoReports.map((report) => _buildReportCard(report)).toList(),
-
-            // Demo mode indicator
-            if (kDemoMode) ...[
-              const SizedBox(height: 32),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.amber.shade50,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.amber.shade700, width: 2),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.science, color: Colors.amber.shade700),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        'DEMO MODE: 더미 데이터가 표시되고 있습니다',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.amber.shade900,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ],
-        ),
       ),
     );
-  }
-
-  Widget _buildSummaryCard({
-    required IconData icon,
-    required String label,
-    required String value,
-    required Color color,
-  }) {
-    return Card(
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            Icon(icon, size: 40, color: color),
-            const SizedBox(height: 12),
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildReportCard(SeniorReport report) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 20,
-                      child: Text(
-                        report.seniorName[0],
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          report.seniorName,
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        Text(
-                          _formatDate(report.date),
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-                _buildMoodChip(report.mood),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Text(
-              report.summary,
-              style: const TextStyle(fontSize: 16, height: 1.5),
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Icon(Icons.access_time, size: 16, color: Colors.grey[600]),
-                const SizedBox(width: 4),
-                Text(
-                  '통화 시간: ${report.callDuration.inMinutes}분',
-                  style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMoodChip(String mood) {
-    Color color;
-    String label;
-    IconData icon;
-
-    switch (mood) {
-      case 'good':
-        color = Colors.green;
-        label = '좋음';
-        icon = Icons.sentiment_satisfied;
-        break;
-      case 'normal':
-        color = Colors.blue;
-        label = '보통';
-        icon = Icons.sentiment_neutral;
-        break;
-      case 'caution':
-        color = Colors.orange;
-        label = '주의';
-        icon = Icons.sentiment_dissatisfied;
-        break;
-      default:
-        color = Colors.grey;
-        label = '알 수 없음';
-        icon = Icons.help_outline;
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color, width: 1.5),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 18, color: color),
-          const SizedBox(width: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              color: color,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  String _formatDate(DateTime date) {
-    final now = DateTime.now();
-    final difference = now.difference(date);
-
-    if (difference.inHours < 24) {
-      if (difference.inHours < 1) {
-        return '${difference.inMinutes}분 전';
-      }
-      return '${difference.inHours}시간 전';
-    } else if (difference.inDays < 7) {
-      return '${difference.inDays}일 전';
-    } else {
-      return '${date.year}.${date.month}.${date.day}';
-    }
   }
 }
 
-/// Model for senior activity reports.
-class SeniorReport {
-  final DateTime date;
-  final String seniorName;
-  final String mood; // 'good', 'normal', 'caution'
-  final String summary;
-  final Duration callDuration;
+/// Reusable Guardian Profile Header widget
+///
+/// Purple gradient banner with greeting message and profile image placeholder
+class GuardianProfileHeader extends StatelessWidget {
+  final String guardianName;
+  final int daysWithHyosim;
 
-  SeniorReport({
-    required this.date,
-    required this.seniorName,
-    required this.mood,
-    required this.summary,
-    required this.callDuration,
+  const GuardianProfileHeader({
+    super.key,
+    required this.guardianName,
+    required this.daysWithHyosim,
   });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(top: 12),
+      padding: const EdgeInsets.all(19),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [
+            Color(0xFF9B7FD4), // Lighter purple
+            Color(0xFF6750A4), // Primary purple
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.white, width: 1),
+      ),
+      child: Row(
+        children: [
+          // Profile Image Placeholder
+          Container(
+            width: 137,
+            height: 133,
+            decoration: BoxDecoration(
+              color: const Color(0xFFEADDFF), // Light purple container
+              borderRadius: BorderRadius.circular(1000),
+            ),
+            child: Center(
+              child: Icon(
+                Icons.person,
+                size: 70,
+                color: const Color(0xFF6750A4).withOpacity(0.5),
+              ),
+            ),
+          ),
+
+          const SizedBox(width: 16),
+
+          // Text content
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Greeting row
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        '안녕하세요 $guardianName 님',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                          height: 1.4,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 7),
+                // Days together message
+                Text(
+                  '효심이와 함께한지\n$daysWithHyosim일 되었어요',
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    height: 1.4,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Reusable Daily Activity Item widget
+///
+/// Displays activity title, subtitle, and "일정 수정" (Edit Schedule) button
+class DailyActivityItem extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final VoidCallback onEditPressed;
+  final bool isLast;
+
+  const DailyActivityItem({
+    super.key,
+    required this.title,
+    required this.subtitle,
+    required this.onEditPressed,
+    this.isLast = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      decoration: BoxDecoration(
+        border: isLast
+            ? null
+            : const Border(
+                bottom: BorderSide(color: Color(0xFFF2F2F7), width: 1),
+              ),
+        borderRadius: isLast ? BorderRadius.circular(8) : null,
+      ),
+      child: Row(
+        children: [
+          // Avatar placeholder
+          Container(
+            width: 62,
+            height: 38,
+            decoration: BoxDecoration(
+              color: const Color(0xFFF7F7F7),
+              borderRadius: BorderRadius.circular(1000),
+            ),
+          ),
+
+          const SizedBox(width: 12),
+
+          // Text content
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    height: 1.4,
+                    color: Colors.black,
+                  ),
+                ),
+                Text(
+                  subtitle,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w400,
+                    height: 1.5,
+                    color: Color(0xFF828282),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Edit schedule button
+          GestureDetector(
+            onTap: onEditPressed,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: const Color(0xFFE8DEF8), // Secondary container
+                borderRadius: BorderRadius.circular(100),
+              ),
+              child: const Text(
+                '일정 수정',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  letterSpacing: 0.1,
+                  color: Color(0xFF4A4459), // On-secondary-container
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

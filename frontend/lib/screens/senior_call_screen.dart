@@ -453,6 +453,44 @@ class _SeniorCallScreenState extends State<SeniorCallScreen> {
     }
   }
 
+  /// Show time picker for "Do later" option
+  Future<void> _showDoLaterTimePicker() async {
+    final TimeOfDay? selectedTime = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.now(),
+      builder: (BuildContext context, Widget? child) {
+        return MediaQuery(
+          data: MediaQuery.of(context).copyWith(textScaleFactor: 1.5),
+          child: child!,
+        );
+      },
+    );
+
+    if (selectedTime != null) {
+      // Format the time for display
+      final hour = selectedTime.hour;
+      final minute = selectedTime.minute.toString().padLeft(2, '0');
+      final period = hour < 12 ? '오전' : '오후';
+      final displayHour = hour > 12 ? hour - 12 : (hour == 0 ? 12 : hour);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '$period $displayHour:$minute에 다시 알려드리겠습니다',
+              style: const TextStyle(fontSize: 18),
+            ),
+            duration: const Duration(seconds: 3),
+            backgroundColor: const Color(0xFF6750A4),
+          ),
+        );
+      }
+
+      // TODO: Schedule notification for the selected time
+      debugPrint('Scheduled notification for: $period $displayHour:$minute');
+    }
+  }
+
   void _scrollToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
@@ -490,171 +528,311 @@ class _SeniorCallScreenState extends State<SeniorCallScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            children: [
-              // Title
-              Text(
-                '효심이 안부 전화',
-                style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final isCompact =
+              constraints.maxHeight < 720 || constraints.maxWidth < 380;
+          final content = _isCalling
+              ? _buildInCallSection(isCompact)
+              : _buildStartCallSection(isCompact);
+
+          return SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 560),
+                  child: content,
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildStartCallSection(bool isCompact) {
+    final nameSize = isCompact ? 36.0 : 50.0;
+    final subtitleSize = isCompact ? 28.0 : 40.0;
+    final illustrationSize = isCompact ? 190.0 : 243.0;
+    final iconSize = isCompact ? 90.0 : 120.0;
+    final buttonFontSize = isCompact ? 24.0 : 32.0;
+    final buttonIconSize = isCompact ? 20.0 : 24.0;
+    final spacingLarge = isCompact ? 32.0 : 58.0;
+    final spacingMedium = isCompact ? 16.0 : 24.0;
+
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Text(
+            '효심이 안부 전화',
+            style: Theme.of(context).textTheme.headlineLarge?.copyWith(
                   fontWeight: FontWeight.bold,
                   fontSize: 32,
                 ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 20),
+
+          // Greeting text
+          Text(
+            '홍길동님',
+            style: TextStyle(
+              fontSize: nameSize,
+              fontWeight: FontWeight.w600,
+              letterSpacing: -0.8,
+              color: const Color(0xFF1C1C2B),
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 7),
+          Text(
+            '상담 시간이에요!',
+            style: TextStyle(
+              fontSize: subtitleSize,
+              fontWeight: FontWeight.w600,
+              letterSpacing: -0.6,
+              color: const Color(0xFF1C1C2B),
+            ),
+            textAlign: TextAlign.center,
+          ),
+          SizedBox(height: spacingLarge),
+
+          // Illustration placeholder (centered purple container)
+          Container(
+            width: illustrationSize,
+            height: illustrationSize,
+            decoration: BoxDecoration(
+              color: const Color(0xFFEADDFF), // M3 primary-container
+              borderRadius: BorderRadius.circular(120),
+            ),
+            child: Center(
+              child: Icon(
+                Icons.phone_in_talk,
+                size: iconSize,
+                color: const Color(0xFF4F378A), // M3 on-primary-container
               ),
-              const SizedBox(height: 24),
+            ),
+          ),
+          SizedBox(height: spacingLarge),
 
-              // Top area - Start call or mic button
-              if (!_isCalling) ...[
-                // Start call button
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: _isLoading ? null : _startCall,
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 24),
-                      backgroundColor: Colors.blue,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
+          // Action buttons
+          Column(
+            children: [
+              // Start button (시작하기)
+              OutlinedButton.icon(
+                onPressed: _isLoading ? null : _startCall,
+                icon: _isLoading
+                    ? const SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Color(0xFF49454F),
+                        ),
+                      )
+                    : Icon(
+                        Icons.check,
+                        size: buttonIconSize,
+                        color: const Color(0xFF49454F),
                       ),
-                    ),
-                    child: _isLoading
-                        ? const CircularProgressIndicator(color: Colors.white)
-                        : Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: const [
-                              Icon(Icons.phone, size: 32),
-                              SizedBox(width: 12),
-                              Text(
-                                '통화 시작하기',
-                                style: TextStyle(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
+                label: Text(
+                  _isLoading ? '연결 중...' : '시작하기',
+                  style: TextStyle(
+                    fontSize: buttonFontSize,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.15,
+                    color: const Color(0xFF49454F),
                   ),
                 ),
-              ] else ...[
-                // Mic button (during call)
-                Center(
-                  child: GestureDetector(
-                    onTap: _isLoading ? null : _toggleRecording,
-                    child: Container(
-                      width: 120,
-                      height: 120,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: _isRecording ? Colors.red : Colors.blue,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.2),
-                            blurRadius: 8,
-                            spreadRadius: 2,
-                          ),
-                        ],
-                      ),
-                      child: _isLoading
-                          ? const Center(
-                              child: CircularProgressIndicator(
-                                color: Colors.white,
-                              ),
-                            )
-                          : Icon(
-                              _isRecording ? Icons.stop : Icons.mic,
-                              size: 60,
-                              color: Colors.white,
-                            ),
-                    ),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 16,
+                  ),
+                  backgroundColor: const Color(
+                    0xFFFF8D28,
+                  ).withValues(alpha: 0.91),
+                  side: const BorderSide(
+                    color: Color(0xFFCAC4D0),
+                    width: 1,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(100),
                   ),
                 ),
-                const SizedBox(height: 16),
-                Text(
-                  _isRecording ? '녹음 중...' : '눌러서 말하기',
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-              const SizedBox(height: 24),
+              ),
+              SizedBox(height: spacingMedium),
 
-              // Middle area - Conversation
-              if (_isCalling) ...[
-                Expanded(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.grey[100],
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: _conversation.isEmpty
-                        ? Center(
-                            child: Text(
-                              '대화를 시작해보세요',
-                              style: TextStyle(
-                                fontSize: 18,
-                                color: Colors.grey[600],
-                              ),
-                            ),
-                          )
-                        : ListView.builder(
-                            controller: _scrollController,
-                            padding: const EdgeInsets.all(16),
-                            itemCount: _conversation.length,
-                            itemBuilder: (context, index) {
-                              final turn = _conversation[index];
-                              return _buildMessageBubble(turn, index);
-                            },
-                          ),
+              // Do later button (다음에 하기)
+              OutlinedButton.icon(
+                onPressed: _isLoading ? null : _showDoLaterTimePicker,
+                icon: Icon(
+                  Icons.close,
+                  size: buttonIconSize,
+                  color: const Color(0xFF49454F),
+                ),
+                label: Text(
+                  '다음에 하기',
+                  style: TextStyle(
+                    fontSize: buttonFontSize,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.15,
+                    color: const Color(0xFF49454F),
                   ),
                 ),
-                const SizedBox(height: 16),
-
-                // Bottom area - End call button
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: _isLoading ? null : _endCall,
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 20),
-                      backgroundColor: Colors.red,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: _isLoading
-                        ? const SizedBox(
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                              strokeWidth: 2,
-                            ),
-                          )
-                        : Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: const [
-                              Icon(Icons.call_end, size: 24),
-                              SizedBox(width: 8),
-                              Text(
-                                '통화 종료',
-                                style: TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 16,
+                  ),
+                  backgroundColor: Colors.transparent,
+                  side: const BorderSide(
+                    color: Color(0xFFCAC4D0),
+                    width: 1,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(100),
                   ),
                 ),
-              ],
+              ),
             ],
           ),
-        ),
+          SizedBox(height: spacingLarge),
+        ],
       ),
+    );
+  }
+
+  Widget _buildInCallSection(bool isCompact) {
+    final micSize = isCompact ? 100.0 : 120.0;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          '효심이 안부 전화',
+          style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+                fontSize: 32,
+              ),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 16),
+
+        // Mic button (during call)
+        Center(
+          child: GestureDetector(
+            onTap: _isLoading ? null : _toggleRecording,
+            child: Container(
+              width: micSize,
+              height: micSize,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: _isRecording ? Colors.red : Colors.blue,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.2),
+                    blurRadius: 8,
+                    spreadRadius: 2,
+                  ),
+                ],
+              ),
+              child: _isLoading
+                  ? const Center(
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                      ),
+                    )
+                  : Icon(
+                      _isRecording ? Icons.stop : Icons.mic,
+                      size: micSize / 2,
+                      color: Colors.white,
+                    ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Text(
+          _isRecording ? '녹음 중...' : '눌러서 말하기',
+          style: const TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 16),
+
+        // Conversation area
+        Expanded(
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.grey[100],
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: _conversation.isEmpty
+                ? Center(
+                    child: Text(
+                      '대화를 시작해보세요',
+                      style: TextStyle(
+                        fontSize: 18,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                  )
+                : ListView.builder(
+                    controller: _scrollController,
+                    padding: const EdgeInsets.all(16),
+                    itemCount: _conversation.length,
+                    itemBuilder: (context, index) {
+                      final turn = _conversation[index];
+                      return _buildMessageBubble(turn, index);
+                    },
+                  ),
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        // Bottom area - End call button
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton(
+            onPressed: _isLoading ? null : _endCall,
+            style: ElevatedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 20),
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: _isLoading
+                ? const SizedBox(
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 2,
+                    ),
+                  )
+                : Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: const [
+                      Icon(Icons.call_end, size: 24),
+                      SizedBox(width: 8),
+                      Text(
+                        '통화 종료',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+          ),
+        ),
+      ],
     );
   }
 
