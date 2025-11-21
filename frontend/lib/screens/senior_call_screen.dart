@@ -6,6 +6,7 @@ import 'dart:typed_data';
 import 'dart:convert';
 
 import '../app_config.dart';
+import '../widgets/senior_app_bar.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
 import 'dart:io' show File; // For non-web platforms
@@ -528,6 +529,7 @@ class _SeniorCallScreenState extends State<SeniorCallScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: const SeniorAppBar(),
       body: LayoutBuilder(
         builder: (context, constraints) {
           final isCompact =

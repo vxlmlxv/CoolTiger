@@ -307,218 +307,268 @@ class _SeniorQuizScreenState extends State<SeniorQuizScreen> {
     return Scaffold(
       appBar: const SeniorAppBar(),
       body: SafeArea(
-        child: Column(
-          children: [
-            // Quiz Card Section
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 26,
-                  vertical: 6,
-                ),
-                child: Card(
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    side: BorderSide(
-                      color: const Color(0xFFCAC4D0), // M3 outline-variant
-                      width: 1,
-                    ),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Header with avatar and title
-                        Row(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final horizontalPadding = constraints.maxWidth < 400 ? 16.0 : 26.0;
+            const maxContentWidth = 720.0;
+            final constrainedWidth = constraints.maxWidth > maxContentWidth
+                ? maxContentWidth
+                : constraints.maxWidth;
+            final availableWidth =
+                (constrainedWidth - (horizontalPadding * 2)).clamp(0.0, double.infinity);
+            final useTwoColumns = availableWidth >= 420;
+            final optionWidth =
+                useTwoColumns ? (availableWidth - 14) / 2 : availableWidth;
+            final optionHeight = useTwoColumns ? 88.0 : 76.0;
+            final stackBottomActions = constraints.maxWidth < 520;
+
+            return SingleChildScrollView(
+              padding: EdgeInsets.symmetric(
+                horizontal: horizontalPadding,
+                vertical: 12,
+              ),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: maxContentWidth),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _buildQuizCard(availableWidth),
+                      const SizedBox(height: 14),
+
+                      // Answer Grid (adaptive columns)
+                      Wrap(
+                        spacing: 14,
+                        runSpacing: 14,
+                        alignment: WrapAlignment.center,
+                        children: List.generate(
+                          _currentQuiz.options.length,
+                          (index) => SizedBox(
+                            width: optionWidth,
+                            child: _buildOptionButton(
+                              index,
+                              buttonHeight: optionHeight,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+
+                      // Bottom Action Bar (stacks on narrow screens)
+                      if (stackBottomActions)
+                        Column(
                           children: [
-                            // Avatar
-                            Container(
-                              width: 40,
-                              height: 40,
-                              decoration: const BoxDecoration(
-                                color: Color(
-                                  0xFFEADDFF,
-                                ), // M3 primary-container
-                                shape: BoxShape.circle,
+                            BottomActionButton(
+                              icon: Icons.close,
+                              label: '종료',
+                              onPressed: _showExitDialog,
+                            ),
+                            const SizedBox(height: 12),
+                            BottomActionButton(
+                              icon: Icons.search,
+                              label: '힌트',
+                              onPressed: _showHint ? null : _showHintDialog,
+                            ),
+                            const SizedBox(height: 12),
+                            BottomActionButton(
+                              icon: Icons.mic,
+                              label: '음성',
+                              onPressed: _showVoiceDialog,
+                            ),
+                          ],
+                        )
+                      else
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: BottomActionButton(
+                                icon: Icons.close,
+                                label: '종료',
+                                onPressed: _showExitDialog,
                               ),
                             ),
-                            const SizedBox(width: 16),
-                            const Expanded(
-                              child: Text(
-                                '인지능력퀴즈',
-                                style: TextStyle(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.w700,
-                                  height: 1.0,
-                                  letterSpacing: 0.15,
-                                ),
+                            const SizedBox(width: 28),
+                            Expanded(
+                              child: BottomActionButton(
+                                icon: Icons.search,
+                                label: '힌트',
+                                onPressed: _showHint ? null : _showHintDialog,
                               ),
                             ),
-                            // More options button
-                            IconButton(
-                              icon: const Icon(Icons.more_vert),
-                              onPressed: () {
-                                // TODO: Show menu (settings, help, etc.)
-                              },
+                            const SizedBox(width: 28),
+                            Expanded(
+                              child: BottomActionButton(
+                                icon: Icons.mic,
+                                label: '음성',
+                                onPressed: _showVoiceDialog,
+                              ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 12),
-
-                        // Image placeholder
-                        if (_currentQuiz.imageUrl != null)
-                          Container(
-                            height: 188,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(12),
-                              color: Colors.grey[200],
-                            ),
-                            child: Image.network(
-                              _currentQuiz.imageUrl!,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) =>
-                                  _buildImagePlaceholder(),
-                            ),
-                          )
-                        else
-                          _buildImagePlaceholder(),
-                        const SizedBox(height: 16),
-
-                        // Question section
-                        Text(
-                          '문제 ${_currentIndex + 1}'.padLeft(4, '0'),
-                          style: const TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.w700,
-                            height: 1.0,
-                            letterSpacing: 0.5,
-                            color: Color(0xFF1D1B20), // M3 on-surface
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          _currentQuiz.questionText,
-                          style: const TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.w400,
-                            height: 0.83,
-                            letterSpacing: 0.25,
-                            color: Color(0xFF49454F), // M3 on-surface-variant
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-
-                        // Hint area
-                        if (_showHint)
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: Colors.amber[50],
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: Colors.amber),
-                            ),
-                            child: Row(
-                              children: [
-                                const Icon(
-                                  Icons.lightbulb,
-                                  color: Colors.amber,
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    _currentQuiz.hintText,
-                                    style: const TextStyle(fontSize: 16),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        const Spacer(),
-
-                        // Next Question button (aligned right)
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: ElevatedButton(
-                            onPressed: _isCorrect ? _nextQuestion : null,
-                            style: ElevatedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 10,
-                              ),
-                              backgroundColor: const Color(
-                                0xFF6750A4,
-                              ), // M3 primary
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(100),
-                              ),
-                              disabledBackgroundColor: Colors.grey[300],
-                            ),
-                            child: Text(
-                              _hasNextQuestion ? '다음 문제' : '완료',
-                              style: const TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.w500,
-                                height: 1.0,
-                                letterSpacing: 0.1,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+                    ],
                   ),
                 ),
               ),
-            ),
+            );
+          },
+        ),
+      ),
+    );
+  }
 
-            // Answer Grid (2x2)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 3),
-              child: Wrap(
-                spacing: 14,
-                runSpacing: 14,
-                alignment: WrapAlignment.center,
-                children: List.generate(
-                  _currentQuiz.options.length,
-                  (index) => _buildOptionButton(index),
+  Widget _buildQuizCard(double availableWidth) {
+    final imageHeight = availableWidth < 420 ? 150.0 : 188.0;
+
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(
+          color: const Color(0xFFCAC4D0), // M3 outline-variant
+          width: 1,
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header with avatar and title
+            Row(
+              children: [
+                // Avatar
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: const BoxDecoration(
+                    color: Color(
+                      0xFFEADDFF,
+                    ), // M3 primary-container
+                    shape: BoxShape.circle,
+                  ),
                 ),
+                const SizedBox(width: 16),
+                const Expanded(
+                  child: Text(
+                    '인지능력퀴즈',
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w700,
+                      height: 1.0,
+                      letterSpacing: 0.15,
+                    ),
+                  ),
+                ),
+                // More options button
+                IconButton(
+                  icon: const Icon(Icons.more_vert),
+                  onPressed: () {
+                    // TODO: Show menu (settings, help, etc.)
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+
+            // Image placeholder
+            if (_currentQuiz.imageUrl != null)
+              Container(
+                height: imageHeight,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  color: Colors.grey[200],
+                ),
+                child: Image.network(
+                  _currentQuiz.imageUrl!,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) =>
+                      _buildImagePlaceholder(),
+                ),
+              )
+            else
+              _buildImagePlaceholder(height: imageHeight),
+            const SizedBox(height: 16),
+
+            // Question section
+            Text(
+              '문제 ${_currentIndex + 1}'.padLeft(4, '0'),
+              style: const TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.w700,
+                height: 1.0,
+                letterSpacing: 0.5,
+                color: Color(0xFF1D1B20), // M3 on-surface
               ),
             ),
-            const SizedBox(height: 3),
+            const SizedBox(height: 8),
+            Text(
+              _currentQuiz.questionText,
+              style: const TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.w400,
+                height: 0.83,
+                letterSpacing: 0.25,
+                color: Color(0xFF49454F), // M3 on-surface-variant
+              ),
+            ),
+            const SizedBox(height: 16),
 
-            // Bottom Action Bar
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 27, vertical: 15),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: BottomActionButton(
-                      icon: Icons.close,
-                      label: '종료',
-                      onPressed: _showExitDialog,
+            // Hint area
+            if (_showHint)
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.amber[50],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.amber),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.lightbulb,
+                      color: Colors.amber,
                     ),
-                  ),
-                  const SizedBox(width: 28),
-                  Expanded(
-                    child: BottomActionButton(
-                      icon: Icons.search,
-                      label: '힌트',
-                      onPressed: _showHint ? null : _showHintDialog,
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _currentQuiz.hintText,
+                        style: const TextStyle(fontSize: 16),
+                      ),
                     ),
+                  ],
+                ),
+              ),
+            const SizedBox(height: 16),
+
+            // Next Question button (aligned right)
+            Align(
+              alignment: Alignment.centerRight,
+              child: ElevatedButton(
+                onPressed: _isCorrect ? _nextQuestion : null,
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 10,
                   ),
-                  const SizedBox(width: 28),
-                  Expanded(
-                    child: BottomActionButton(
-                      icon: Icons.mic,
-                      label: '음성',
-                      onPressed: _showVoiceDialog,
-                    ),
+                  backgroundColor: const Color(
+                    0xFF6750A4,
+                  ), // M3 primary
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(100),
                   ),
-                ],
+                  disabledBackgroundColor: Colors.grey[300],
+                ),
+                child: Text(
+                  _hasNextQuestion ? '다음 문제' : '완료',
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w500,
+                    height: 1.0,
+                    letterSpacing: 0.1,
+                  ),
+                ),
               ),
             ),
           ],
@@ -527,9 +577,9 @@ class _SeniorQuizScreenState extends State<SeniorQuizScreen> {
     );
   }
 
-  Widget _buildImagePlaceholder() {
+  Widget _buildImagePlaceholder({double height = 188}) {
     return Container(
-      height: 188,
+      height: height,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
         color: const Color(0xFFECE6F0), // M3 placeholder background
@@ -540,7 +590,7 @@ class _SeniorQuizScreenState extends State<SeniorQuizScreen> {
     );
   }
 
-  Widget _buildOptionButton(int index) {
+  Widget _buildOptionButton(int index, {required double buttonHeight}) {
     final isDisabled = _disabledOptions.contains(index);
 
     Color backgroundColor;
@@ -564,29 +614,32 @@ class _SeniorQuizScreenState extends State<SeniorQuizScreen> {
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
-      width: 173,
-      height: 91,
-      child: ElevatedButton(
-        onPressed: isDisabled ? null : () => _selectOption(index),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: backgroundColor,
-          foregroundColor: textColor,
-          disabledBackgroundColor: Colors.grey[300],
-          disabledForegroundColor: Colors.grey[600],
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          elevation: 0,
-        ),
-        child: Text(
-          _currentQuiz.options[index],
-          style: const TextStyle(
-            fontSize: 36,
-            fontWeight: FontWeight.w400,
-            height: 1.11,
+      child: SizedBox(
+        height: buttonHeight,
+        child: ElevatedButton(
+          onPressed: isDisabled ? null : () => _selectOption(index),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: backgroundColor,
+            foregroundColor: textColor,
+            disabledBackgroundColor: Colors.grey[300],
+            disabledForegroundColor: Colors.grey[600],
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+            elevation: 0,
           ),
-          textAlign: TextAlign.center,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
+          child: Text(
+            _currentQuiz.options[index],
+            style: const TextStyle(
+              fontSize: 30,
+              fontWeight: FontWeight.w500,
+              height: 1.2,
+            ),
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
         ),
       ),
     );

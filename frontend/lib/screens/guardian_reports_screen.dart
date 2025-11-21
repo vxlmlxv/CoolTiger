@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../models/report_data.dart';
 import '../widgets/guardian_bottom_nav.dart';
+import '../widgets/logout_action_button.dart';
 
 /// Guardian Reports Screen with calendar and activity reports.
 ///
@@ -44,6 +45,7 @@ class _GuardianReportsScreenState extends State<GuardianReportsScreen> {
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
         elevation: 0,
+        actions: const [LogoutActionButton()],
       ),
       backgroundColor: Colors.white,
       bottomNavigationBar: GuardianBottomNav(

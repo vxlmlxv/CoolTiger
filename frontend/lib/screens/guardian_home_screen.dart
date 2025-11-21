@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../widgets/guardian_bottom_nav.dart';
+import '../widgets/logout_action_button.dart';
 
 /// Guardian (보호자) Home Screen - Dashboard for family members/protectors
 ///
@@ -80,6 +81,7 @@ class _GuardianHomeScreenState extends State<GuardianHomeScreen> {
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
         elevation: 0,
+        actions: const [LogoutActionButton()],
       ),
       backgroundColor: Colors.white,
       bottomNavigationBar: GuardianBottomNav(

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'logout_action_button.dart';
+
 /// Custom app bar for senior users matching Figma design.
 ///
 /// Features:
@@ -99,6 +101,7 @@ class SeniorAppBar extends StatelessWidget implements PreferredSizeWidget {
             ),
           ),
         ),
+        const LogoutActionButton(),
       ],
     );
   }
