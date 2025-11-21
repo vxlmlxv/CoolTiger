@@ -73,6 +73,7 @@ def synthesize_speech(text: str) -> bytes:
         voice = texttospeech.VoiceSelectionParams(
             language_code=settings.google_tts_language_code,
             name=settings.google_tts_voice_name,
+            model_name="gemini-2.5-pro-tts"
         )
         
 
